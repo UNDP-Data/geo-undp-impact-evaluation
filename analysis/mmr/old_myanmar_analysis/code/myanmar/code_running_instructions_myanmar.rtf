@@ -1,0 +1,66 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # 1. Navigate to your project folder\
+cd ~/Dropbox/Documents/Laboral/AImpact\\ Lab/Clients/UNDP/data_analysis\
+\
+# 2. Activate Virtual Environment\
+source .venv/bin/activate\
+\
+# 3. Install/Update ALL Dependencies\
+# (Added: hdx-python-api for WFP, pytrends for Google Trends, linearmodels for regression)\
+./.venv/bin/python -m pip install earthengine-api pandas geopandas matplotlib seaborn rasterio statsmodels linearmodels hdx-python-api pytrends openpyxl\
+\
+# 4. Authenticate Google Earth Engine (One-time setup)\
+./.venv/bin/earthengine authenticate\
+./.venv/bin/earthengine set_project r-server-326118\
+\
+# --- DATA PREPARATION PHASE ---\
+\
+# 5. Convert UNDP Excel Data to GeoJSON\
+# (Required: Creates 'undp_interventions.geojson' used for mapping)\
+python3 code/myanmar/00_convert_undp_with_interventions.py\
+\
+# 6. Master Data Acquisition\
+# (Downloads GEE stats, ACLED, WFP, Google Trends, and IODA data)\
+python3 code/myanmar/00_data_acquisition.py\
+\
+# 7. Process Local Nightlight TIFs\
+# (Extracts high-res pixel values from local raster files for validation)\
+python3 code/myanmar/00_process_local_rasters.py\
+\
+# --- ANALYSIS PHASE ---\
+\
+# 8. Main Regression Analysis\
+# (Merges all data sources, runs DiD models with 25km control group)\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 python3 code/myanmar/01_main_analysis.py\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+# 9. Robustness Checks (Sensitivity Analysis)\
+# (Runs placebo tests, spillover checks, and alternative radii)\
+python3 code/myanmar/02_robustness.py\
+\
+# 10. IPW Balance Check\
+# (Verifies covariate balance between Treated and 25km Control groups)\
+python3 code/myanmar/06_robustness_ipw.py\
+\
+# --- OUTPUT GENERATION PHASE ---\
+\
+# 11. Generate Descriptive Statistics Table\
+# (Creates Table 1: Summary Stats for Treated vs Control)\
+python3 code/myanmar/05_descriptive_stats.py\
+\
+# 12. Final Visuals\
+# (Generates Maps, DiD Plots, and Time Series graphs)\
+python3 code/myanmar/03_visuals.py\
+\
+# 13. Format Final Tables\
+# (Compiles all regression CSVs into publication-ready tables)\
+python3 code/myanmar/04_tables.py\
+\
+echo "Analysis Complete. Check 'outputs/myanmar/' for results."}

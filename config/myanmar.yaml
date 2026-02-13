@@ -1,0 +1,33 @@
+# Myanmar - M7.7 Earthquake (March 28, 2025)
+
+country_name: "Myanmar"
+country_code: "MMR"
+
+study_period_start: "2023-10-01"
+study_period_end: "2026-01-30"
+
+events:
+  disaster_type: "earthquake"
+  disaster_date: "2025-03-28"
+  intervention_start: "2025-04-01"
+
+disaster_label: "Earthquake"
+
+epicenter:
+  lat: 20.88
+  lon: 95.96
+  magnitude: 7.7
+
+raster_maps:
+  pre_month: "2025-02"
+  post_month: "2025-04"
+  recent_month: "2025-12"
+
+boundaries:
+  file_path: "data/mmr/boundaries/mmr_admin3.geojson"
+  id_column: "shapeID"
+  name_column: "shapeName"
+  admin_level: 3
+
+acled_country_name: "Myanmar"
+wfp_commodity: "Rice"

@@ -1,0 +1,28 @@
+# Ukraine - Russian Invasion (February 24, 2022)
+
+country_name: "Ukraine"
+country_code: "UKR"
+
+study_period_start: "2021-02-01"
+study_period_end: "2026-02-28"
+
+events:
+  disaster_type: "conflict"
+  disaster_date: "2022-02-24"
+  intervention_start: "2022-03-01"
+
+disaster_label: "Russian Invasion"
+
+raster_maps:
+  pre_month: "2022-01"
+  post_month: "2022-03"
+  recent_month: "2025-12"
+
+boundaries:
+  file_path: "data/ukr/boundaries/ukr_admin2.geojson"
+  id_column: "shapeID"
+  name_column: "shapeName"
+  admin_level: 2
+
+acled_country_name: "Ukraine"
+wfp_commodity: "Bread"

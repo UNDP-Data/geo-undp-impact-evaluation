@@ -1,0 +1,29 @@
+# Data (downloaded by pipeline — too large for git)
+data/
+outputs/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.eggs/
+
+# Environment / Secrets
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Archives
+*/_archive/
