@@ -36,7 +36,11 @@ except ImportError:
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path as MplPath
 import matplotlib.lines as mlines
+from shapely.geometry import box as shapely_box
+from shapely.ops import unary_union
 
 # =============================================================================
 # CONFIGURATION
@@ -209,6 +213,52 @@ def select_comparison_dates(rasters_dict, indicator):
     ]
 
 
+def create_border_mask(national_gdf, extent, ax):
+    """
+    Overlay a black mask OUTSIDE the national boundary.
+    This hides raster data beyond the country border.
+    """
+    if national_gdf is None:
+        return
+    
+    # Create a large bounding box that covers the full plot area
+    big_box = shapely_box(extent[0] - 5, extent[2] - 5, extent[1] + 5, extent[3] + 5)
+    
+    # Get the country geometry (union of all polygons)
+    country_geom = unary_union(national_gdf.geometry)
+    
+    # Subtract country from bounding box → everything OUTSIDE the border
+    mask_geom = big_box.difference(country_geom)
+    
+    # Convert to matplotlib path and plot as black overlay
+    if mask_geom.is_empty:
+        return
+    
+    # Handle MultiPolygon
+    from shapely.geometry import MultiPolygon, Polygon
+    if isinstance(mask_geom, Polygon):
+        polys = [mask_geom]
+    elif isinstance(mask_geom, MultiPolygon):
+        polys = list(mask_geom.geoms)
+    else:
+        return
+    
+    for poly in polys:
+        # Exterior ring
+        verts = list(poly.exterior.coords)
+        codes = [MplPath.MOVETO] + [MplPath.LINETO] * (len(verts) - 2) + [MplPath.CLOSEPOLY]
+        
+        # Interior rings (holes = the country itself)
+        for interior in poly.interiors:
+            hole_verts = list(interior.coords)
+            verts += hole_verts
+            codes += [MplPath.MOVETO] + [MplPath.LINETO] * (len(hole_verts) - 2) + [MplPath.CLOSEPOLY]
+        
+        path = MplPath(verts, codes)
+        patch = PathPatch(path, facecolor='white', edgecolor='none', zorder=4)
+        ax.add_patch(patch)
+
+
 def create_three_panel_map(indicator, rasters_dict, sites, undp_projects, gdf, national, 
                           output_path, show_markers=True):
     """Create three-panel map."""
@@ -220,9 +270,9 @@ def create_three_panel_map(indicator, rasters_dict, sites, undp_projects, gdf, n
     raster_data = [load_raster(path) for date, path in selected]
     category_counts = get_project_categories(undp_projects)
     
-    fig = plt.figure(figsize=(20, 10))
+    fig = plt.figure(figsize=(20, 10), facecolor='white')
     gs = fig.add_gridspec(1, 3, wspace=0.12, left=0.05, right=0.95, top=0.88, bottom=0.18)
-    axes = [fig.add_subplot(gs[0, i]) for i in range(3)]
+    axes = [fig.add_subplot(gs[0, i], facecolor='white') for i in range(3)]
     
     # Use SIMPLE black-to-yellow (no brown!)
     if indicator == 'viirs':
@@ -269,13 +319,16 @@ def create_three_panel_map(indicator, rasters_dict, sites, undp_projects, gdf, n
         ax.set_xlim(country_extent[0], country_extent[1])
         ax.set_ylim(country_extent[2], country_extent[3])
         
-        # National boundary (white)
-        if national is not None:
-            national.boundary.plot(ax=ax, color='white', linewidth=1.5, alpha=0.9)
+        # MASK: Black overlay outside national border
+        create_border_mask(national, country_extent, ax)
         
-        # Admin boundaries (thin)
+        # National boundary (dark gray on white bg)
+        if national is not None:
+            national.boundary.plot(ax=ax, color='#333333', linewidth=1.5, alpha=0.9, zorder=5)
+        
+        # Admin boundaries (thin gray)
         if gdf is not None:
-            gdf.boundary.plot(ax=ax, color='white', linewidth=0.2, alpha=0.3)
+            gdf.boundary.plot(ax=ax, color='#666666', linewidth=0.2, alpha=0.3, zorder=5)
         
         # Epicenter
         ax.scatter([95.925], [22.001], marker='*', s=300, c='red',

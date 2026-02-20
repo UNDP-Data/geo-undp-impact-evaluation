@@ -26,3 +26,11 @@ boundaries:
 
 acled_country_name: "Palestine"
 wfp_commodity: "Bread"
+
+# Filter to Gaza Strip only (exclude West Bank)
+unit_filter:
+  - PS0255
+  - PS0260
+  - PS0265
+  - PS0270
+  - PS0275
