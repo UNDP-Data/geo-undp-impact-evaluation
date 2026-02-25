@@ -408,8 +408,8 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
         norm = Normalize(vmin=vmin, vmax=vmax)
     
     fig, axes = plt.subplots(1, 3, figsize=(20, 8))
-    titles = [f"Pre-Disaster\n{date1.strftime('%B %Y')}", 
-              f"Post-Disaster\n{date2.strftime('%B %Y')}", 
+    titles = [f"Pre-Event\n{date1.strftime('%B %Y')}", 
+              f"Post-Event\n{date2.strftime('%B %Y')}", 
               f"Most Recent\n{date3.strftime('%B %Y')}"]
     
     for ax, g, title in zip(axes, [gdf1, gdf2, gdf3], titles):

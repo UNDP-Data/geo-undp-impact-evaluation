@@ -300,9 +300,9 @@ def create_three_panel_map(indicator, rasters_dict, sites, undp_projects, gdf, n
         country_extent = raster_data[0]['extent']
     
     titles = [
-        ('Pre-Earthquake', 'forestgreen'),
-        ('Post-Earthquake', 'crimson'),
-        ('Post-UNDP Recovery', 'royalblue'),
+        ('Pre-Event', 'forestgreen'),
+        ('Post-Event', 'crimson'),
+        ('Post-Intervention', 'royalblue'),
     ]
     
     indicator_display = {
