@@ -1,0 +1,27 @@
+country_name: Sudan
+country_code: SDN
+study_period_start: '2022-01-01'
+study_period_end: '2025-12-31'
+events:
+  disaster_type: conflict
+  disaster_date: '2023-04-15'
+  intervention_start: '2024-01-01'
+boundaries:
+  file_path: data/sdn/boundaries/sdn_admin2.geojson
+  id_column: shapeID
+  name_column: shapeName
+  admin_level: 2
+acled_country_name: Sudan
+google_trends_keywords:
+  earthquake: earthquake
+  flood: flood
+  reconstruction: reconstruction
+  food: food
+  water: water
+  medicine: medicine
+  shelter: shelter
+  aid: aid
+  cement: cement
+  construction: construction
+wfp_hdx_dataset: wfp-food-prices-for-sudan
+wfp_commodity: Sorghum

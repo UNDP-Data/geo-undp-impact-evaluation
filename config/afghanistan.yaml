@@ -1,33 +1,24 @@
-# Afghanistan - Herat Earthquake (October 7, 2023)
-
-country_name: "Afghanistan"
-country_code: "AFG"
-
-study_period_start: "2022-10-01"
-study_period_end: "2026-02-28"
-
+country_name: Afghanistan
+country_code: AFG
+study_period_start: '2022-10-01'
+study_period_end: '2026-02-28'
 events:
-  disaster_type: "earthquake"
-  disaster_date: "2023-10-07"
-  intervention_start: "2023-11-01"
-
-disaster_label: "Earthquake"
-
+  disaster_type: earthquake
+  disaster_date: '2023-10-07'
+  intervention_start: '2024-01-01'
+disaster_label: Earthquake
 epicenter:
   lat: 34.51
   lon: 62.07
   magnitude: 6.3
-
 raster_maps:
-  pre_month: "2023-09"
-  post_month: "2023-11"
-  recent_month: "2025-12"
-
+  pre_month: 2023-09
+  post_month: 2023-11
+  recent_month: 2025-12
 boundaries:
-  file_path: "data/afg/boundaries/afg_admin2.geojson"
-  id_column: "shapeID"
-  name_column: "shapeName"
+  file_path: data/afg/boundaries/afg_admin2.geojson
+  id_column: shapeID
+  name_column: shapeName
   admin_level: 2
-
-acled_country_name: "Afghanistan"
-wfp_commodity: "Wheat flour"
+acled_country_name: Afghanistan
+wfp_commodity: Wheat flour

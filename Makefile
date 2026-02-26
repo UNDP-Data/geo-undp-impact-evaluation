@@ -99,7 +99,7 @@ acled:
 		echo "  ✓ ACLED data exists ($$ROWS events) — skipping"; \
 	elif [ -n "$$ACLED_EMAIL" ] && [ -n "$$ACLED_KEY" ]; then \
 		python -m pipeline.acled_download --config $(CONFIG) \
-			--email "$$ACLED_EMAIL" --key "$$ACLED_KEY"; \
+			--email "$$ACLED_EMAIL" --password "$$ACLED_KEY"; \
 	elif [ -n "$$ACLED_EMAIL" ] && [ -n "$$ACLED_PASSWORD" ]; then \
 		python -m pipeline.acled_download --config $(CONFIG) \
 			--email "$$ACLED_EMAIL" --password "$$ACLED_PASSWORD"; \

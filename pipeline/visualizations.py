@@ -168,7 +168,42 @@ def main():
                 print(f"  ✓ map_{outcome}.png")
     
     # Summary
-    print("\n--- Summary ---")
+    print("\n--- Google Trends ---")
+
+    # --- Google Trends ---
+
+    gt_cols = [col for col in panel.columns if col.startswith('gt_') or col.startswith('trends_')]
+    if gt_cols:
+        print(f"\n--- Google Trends ---")
+        for col in gt_cols:
+            try:
+                monthly = panel.groupby('period_start')[col].mean().reset_index()
+                monthly['period_start'] = pd.to_datetime(monthly['period_start'])
+                monthly = monthly.sort_values('period_start')
+                
+                fig, ax = plt.subplots(figsize=(12, 4))
+                ax.plot(monthly['period_start'], monthly[col], color='#0468B1', linewidth=1.5)
+                ax.axvline(pd.Timestamp(disaster_date), color='red', linestyle='--', alpha=0.7, linewidth=1)
+                
+                label = col.replace('gt_', '').replace('trends_', '').replace('_', ' ').title()
+                ax.set_title(f"{country_name}: Google Trends — {label}", fontsize=11, fontweight='bold')
+                ax.set_ylabel("Search Interest", fontsize=9)
+                ax.tick_params(axis='both', labelsize=8)
+                ax.grid(True, alpha=0.3)
+                
+                # Pre/post shading
+                ax.axvspan(monthly['period_start'].min(), pd.Timestamp(disaster_date), alpha=0.05, color='green')
+                ax.axvspan(pd.Timestamp(disaster_date), monthly['period_start'].max(), alpha=0.05, color='red')
+                
+                fig.tight_layout()
+                fname = f"gt_{col.replace('gt_','').replace('trends_','')}.png"
+                fig.savefig(fig_dir / fname, dpi=150, bbox_inches='tight', facecolor='white')
+                plt.close(fig)
+                print(f"  ✓ {fname}")
+            except Exception as e:
+                print(f"  ⚠ {col}: {e}")
+
+    print(f"\n--- Summary ---")
     create_summary(panel, outcomes, disaster_date, figures_dir)
     print(f"  ✓ summary_statistics.csv")
     

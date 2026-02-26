@@ -251,6 +251,9 @@ def download_trends(config_path: str, slow_mode: bool = False, english_only: boo
     success_count = 0
     fail_count = 0
     
+    # Handle both dict and list formats
+    if isinstance(keywords, list):
+        keywords = {w: w for w in keywords}
     for key, term in keywords.items():
         print(f"  > {key}: '{term}'...", end=" ", flush=True)
         

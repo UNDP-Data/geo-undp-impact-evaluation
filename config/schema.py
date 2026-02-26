@@ -140,6 +140,7 @@ def load_config(config_path: str) -> CountryConfig:
     raster_maps_data = data.pop('raster_maps', None)
     disaster_label = data.pop('disaster_label', None)
     
+    data.pop("google_trends_keywords", None)
     config = CountryConfig(
         boundaries=boundaries,
         events=events,

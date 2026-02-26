@@ -1,0 +1,26 @@
+country_name: DR Congo
+country_code: COD
+study_period_start: '2021-01-01'
+study_period_end: '2025-12-31'
+events:
+  disaster_type: conflict
+  disaster_date: '2022-03-01'
+  intervention_start: '2023-01-01'
+boundaries:
+  file_path: data/cod/boundaries/cod_admin2.geojson
+  id_column: shapeID
+  name_column: shapeName
+  admin_level: 2
+acled_country_name: Democratic Republic of Congo
+google_trends_keywords:
+  war: guerre
+  M23: M23
+  food: nourriture
+  water: eau
+  shelter: abri
+  medicine: "m\xE9dicament"
+  Goma: Goma
+  refugee: "r\xE9fugi\xE9"
+  aid: aide
+  Congo: Congo
+wfp_commodity: Cassava flour
