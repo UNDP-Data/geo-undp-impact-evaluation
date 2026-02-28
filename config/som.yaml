@@ -1,0 +1,24 @@
+country_name: Somalia
+country_code: SOM
+study_period_start: '2022-01-01'
+study_period_end: '2025-12-31'
+events:
+  disaster_type: drought
+  disaster_date: '2023-01-01'
+  intervention_start: '2023-01-01'
+boundaries:
+  file_path: data/som/boundaries/som_admin2.geojson
+  id_column: shapeID
+  name_column: shapeName
+  admin_level: 2
+acled_country_name: Somalia
+wfp_commodity: Sorghum
+google_trends_keywords:
+  food: food
+  water: water
+  shelter: shelter
+  medicine: medicine
+  aid: aid
+  reconstruction: reconstruction
+  refugee: refugee
+  drought: drought

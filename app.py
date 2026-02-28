@@ -110,6 +110,7 @@ RASTER_NAMES = {'viirs':'Energy & Nightlights','ndvi':'Vegetation Health','ndbi'
 METHODOLOGY_NOTE = """<b>Methodological note.</b> Scores are calculated only for administrative units that experienced a significant shock, defined as a decline greater than 10% relative to the pre-event baseline. Indicators below this threshold are classified as <em>Stable</em> and are excluded from recovery scoring. To ensure comparability over time, Vegetation and Nightlights indicators are adjusted on a year-over-year basis to remove natural seasonal variation (e.g., harvest cycles, snow cover, or holiday effects). <b>Overall Recovery</b> measures the share of the initial decline that has been regained since the lowest observed point of the crisis (the trough), capped at 100%. <b>Since Intervention</b> captures the recovery achieved after the intervention start date, expressed as a percentage of the total disaster impact and likewise capped at 100%. These metrics describe observed temporal dynamics to support rapid prioritisation and resource allocation; they reflect recovery trends but do not imply direct causal attribution to any single organisation or intervention.<br><br><b>Disclaimer.</b> The accuracy of these results depends on the quality and resolution of the underlying satellite data. In some contexts, indicators such as nighttime lights may be affected by seasonal patterns, cloud cover, snow reflectance, or sensor calibration changes that are not fully captured by the year-over-year adjustment. This dashboard presents <em>correlations</em> between the timing of an event, the start of early recovery interventions, and changes in satellite-derived indicators; it does not constitute evidence of causal impact. In most contexts, UNDP is not the only actor on the ground, and observed recovery trends reflect the combined contributions of multiple organisations and local actors. Isolating UNDP's specific contribution requires econometric approaches (e.g., Difference-in-Differences, Synthetic Control) available in the Impact Measurement tab, which support attribution to the extent possible given data constraints."""
 
 QUICK_REF = {
+    # Current UNDP priority countries
     'Afghanistan':  {'iso':'AFG','acled':'Afghanistan','etype':'earthquake','edate':'2023-10-07','commodity':'Wheat flour','admin':2},
     'Bangladesh':   {'iso':'BGD','acled':'Bangladesh','etype':'cyclone','edate':'2024-05-01','commodity':'Rice','admin':2},
     'DR Congo':     {'iso':'COD','acled':'Democratic Republic of Congo','etype':'conflict','edate':'2022-03-01','commodity':'Cassava flour','admin':2},
@@ -124,6 +125,81 @@ QUICK_REF = {
     'Syria':        {'iso':'SYR','acled':'Syria','etype':'earthquake','edate':'2023-02-06','commodity':'Bread','admin':2},
     'Ukraine':      {'iso':'UKR','acled':'Ukraine','etype':'conflict','edate':'2022-02-24','commodity':'Wheat flour','admin':2},
     'Yemen':        {'iso':'YEM','acled':'Yemen','etype':'conflict','edate':'2022-01-01','commodity':'Wheat flour','admin':2},
+    # Africa
+    'Algeria':      {'iso':'DZA','acled':'Algeria','etype':'earthquake','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
+    'Angola':       {'iso':'AGO','acled':'Angola','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Burkina Faso': {'iso':'BFA','acled':'Burkina Faso','etype':'conflict','edate':'2025-01-01','commodity':'Millet','admin':2},
+    'Burundi':      {'iso':'BDI','acled':'Burundi','etype':'conflict','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Cameroon':     {'iso':'CMR','acled':'Cameroon','etype':'conflict','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Central African Republic': {'iso':'CAF','acled':'Central African Republic','etype':'conflict','edate':'2025-01-01','commodity':'Cassava flour','admin':2},
+    'Chad':         {'iso':'TCD','acled':'Chad','etype':'conflict','edate':'2025-01-01','commodity':'Millet','admin':2},
+    'Côte d\'Ivoire': {'iso':'CIV','acled':'Ivory Coast','etype':'conflict','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Egypt':        {'iso':'EGY','acled':'Egypt','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Eritrea':      {'iso':'ERI','acled':'Eritrea','etype':'drought','edate':'2025-01-01','commodity':'Sorghum','admin':2},
+    'Ghana':        {'iso':'GHA','acled':'Ghana','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Guinea':       {'iso':'GIN','acled':'Guinea','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Kenya':        {'iso':'KEN','acled':'Kenya','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Libya':        {'iso':'LBY','acled':'Libya','etype':'conflict','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Madagascar':   {'iso':'MDG','acled':'Madagascar','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Malawi':       {'iso':'MWI','acled':'Malawi','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Mali':         {'iso':'MLI','acled':'Mali','etype':'conflict','edate':'2025-01-01','commodity':'Millet','admin':2},
+    'Mauritania':   {'iso':'MRT','acled':'Mauritania','etype':'drought','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
+    'Mozambique':   {'iso':'MOZ','acled':'Mozambique','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Niger':        {'iso':'NER','acled':'Niger','etype':'conflict','edate':'2025-01-01','commodity':'Millet','admin':2},
+    'Nigeria':      {'iso':'NGA','acled':'Nigeria','etype':'conflict','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Rwanda':       {'iso':'RWA','acled':'Rwanda','etype':'flood','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Senegal':      {'iso':'SEN','acled':'Senegal','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Sierra Leone': {'iso':'SLE','acled':'Sierra Leone','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'South Africa': {'iso':'ZAF','acled':'South Africa','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'South Sudan':  {'iso':'SSD','acled':'South Sudan','etype':'conflict','edate':'2025-01-01','commodity':'Sorghum','admin':2},
+    'Tanzania':     {'iso':'TZA','acled':'Tanzania','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Togo':         {'iso':'TGO','acled':'Togo','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Tunisia':      {'iso':'TUN','acled':'Tunisia','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Uganda':       {'iso':'UGA','acled':'Uganda','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Zambia':       {'iso':'ZMB','acled':'Zambia','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Zimbabwe':     {'iso':'ZWE','acled':'Zimbabwe','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    # Asia & Pacific
+    'Cambodia':     {'iso':'KHM','acled':'Cambodia','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'China':        {'iso':'CHN','acled':'China','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Fiji':         {'iso':'FJI','acled':'Fiji','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'India':        {'iso':'IND','acled':'India','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Indonesia':    {'iso':'IDN','acled':'Indonesia','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Japan':        {'iso':'JPN','acled':'Japan','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Laos':         {'iso':'LAO','acled':'Laos','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Nepal':        {'iso':'NPL','acled':'Nepal','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Pakistan':     {'iso':'PAK','acled':'Pakistan','etype':'flood','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
+    'Papua New Guinea': {'iso':'PNG','acled':'Papua New Guinea','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Philippines':  {'iso':'PHL','acled':'Philippines','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Sri Lanka':    {'iso':'LKA','acled':'Sri Lanka','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Vanuatu':      {'iso':'VUT','acled':'Vanuatu','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Vietnam':      {'iso':'VNM','acled':'Vietnam','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    # Middle East
+    'Iran':         {'iso':'IRN','acled':'Iran','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Jordan':       {'iso':'JOR','acled':'Jordan','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Libya':        {'iso':'LBY','acled':'Libya','etype':'conflict','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Turkey':       {'iso':'TUR','acled':'Turkey','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    # Americas
+    'Bolivia':      {'iso':'BOL','acled':'Bolivia','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Brazil':       {'iso':'BRA','acled':'Brazil','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Chile':        {'iso':'CHL','acled':'Chile','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Colombia':     {'iso':'COL','acled':'Colombia','etype':'conflict','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Cuba':         {'iso':'CUB','acled':'Cuba','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Dominican Republic': {'iso':'DOM','acled':'Dominican Republic','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Ecuador':      {'iso':'ECU','acled':'Ecuador','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'El Salvador':  {'iso':'SLV','acled':'El Salvador','etype':'earthquake','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Guatemala':    {'iso':'GTM','acled':'Guatemala','etype':'earthquake','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Honduras':     {'iso':'HND','acled':'Honduras','etype':'cyclone','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Mexico':       {'iso':'MEX','acled':'Mexico','etype':'earthquake','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Nicaragua':    {'iso':'NIC','acled':'Nicaragua','etype':'cyclone','edate':'2025-01-01','commodity':'Beans','admin':2},
+    'Peru':         {'iso':'PER','acled':'Peru','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Venezuela':    {'iso':'VEN','acled':'Venezuela','etype':'conflict','edate':'2025-01-01','commodity':'Rice','admin':2},
+    # Europe & Central Asia
+    'Armenia':      {'iso':'ARM','acled':'Armenia','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Georgia':      {'iso':'GEO','acled':'Georgia','etype':'conflict','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Kyrgyzstan':   {'iso':'KGZ','acled':'Kyrgyzstan','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Moldova':      {'iso':'MDA','acled':'Moldova','etype':'flood','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
+    'Tajikistan':   {'iso':'TJK','acled':'Tajikistan','etype':'earthquake','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
+    'Uzbekistan':   {'iso':'UZB','acled':'Uzbekistan','etype':'earthquake','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
 }
 
 
@@ -242,6 +318,116 @@ def collect_showcase_files():
             else: files['plots'].append(f)
     return files
 
+
+def estimate_economic_reactivation(config, figures_dir, code):
+    """Indicative economic reactivation using nightlights-GDP elasticity.
+    Henderson et al. (2012): elasticity ~0.3.
+    Uses ONLY nightlights for GDP conversion (other indicators don't have GDP elasticity).
+    Ties estimates to the currently selected programme."""
+    scorecard_csv = figures_dir / "scorecard_data.csv"
+    undp_csv = Path(f"data/{code}/external/undp_projects.csv")
+    if not scorecard_csv.exists() or not undp_csv.exists():
+        return None
+    sc = pd.read_csv(scorecard_csv)
+
+    # ONLY use nightlights — the elasticity only applies to nightlights-GDP
+    nl_row = sc[sc['indicator'].str.contains('nightlight', case=False, na=False)]
+    if not nl_row.empty:
+        nl_overall = float(nl_row.iloc[0].get('overall_recovery_pct', 0))
+        nl_undp = float(nl_row.iloc[0].get('undp_recovery_pct', 0))
+        n_affected = int(nl_row.iloc[0].get('n_affected_units', 0))
+        n_total = int(nl_row.iloc[0].get('n_total_units', 0))
+    else:
+        nl_overall, nl_undp = 0.0, 0.0
+        any_aff = sc[sc['n_affected_units'] > 0]
+        n_affected = int(any_aff.iloc[0]['n_affected_units']) if not any_aff.empty else 0
+        n_total = int(any_aff.iloc[0]['n_total_units']) if not any_aff.empty else 0
+
+    # Read UNDP projects
+    undp_df = pd.read_csv(undp_csv)
+    if 'total_budget' not in undp_df.columns:
+        if 'budget' in undp_df.columns:
+            undp_df['total_budget'] = undp_df['budget']
+        else:
+            return None
+    undp_df['start_date'] = pd.to_datetime(undp_df.get('start_date'), errors='coerce')
+    event_dt = pd.Timestamp(config['events']['disaster_date'])
+    intervention_dt = pd.Timestamp(config['events'].get('intervention_start', config['events']['disaster_date']))
+    post = undp_df[undp_df['start_date'] >= event_dt].dropna(subset=['total_budget']).copy()
+    if post.empty:
+        return None
+
+    ELASTICITY = 0.3
+    coverage = n_affected / max(n_total, 1)
+
+    # Build per-programme estimates
+    # The selected programme's recovery is nl_undp (since programme)
+    # Other programmes: use overall recovery as a rough proxy
+    rows = []
+    for _, pr in post.iterrows():
+        budget = float(pr['total_budget'])
+        if pd.isna(budget) or budget <= 0:
+            continue
+        title = str(pr.get('title', ''))[:55]
+        pr_date = pr['start_date'].strftime('%Y-%m-%d') if pd.notna(pr['start_date']) else '-'
+
+        # Is this the currently selected programme?
+        is_selected = (pr_date == str(intervention_dt.date()))
+
+        # Use programme-specific recovery if selected, overall otherwise
+        if is_selected and nl_undp > 0:
+            prog_recovery = nl_undp
+            label = "Since programme"
+        elif nl_overall > 0:
+            prog_recovery = nl_overall
+            label = "Overall"
+        else:
+            prog_recovery = 0
+            label = "No recovery"
+
+        gdp_effect = prog_recovery * ELASTICITY
+        multiplier = max(1.0, 1 + (prog_recovery / 100) * ELASTICITY * 10 * coverage)
+        indicative_value = budget * multiplier
+        roi = (indicative_value - budget) / budget if budget > 0 else 0
+
+        rows.append({
+            'Programme': title,
+            'Start': pr_date,
+            'Budget (USD)': budget,
+            'NL Recovery': f"{prog_recovery:.0f}%",
+            'GDP Effect': f"{gdp_effect:.1f}%",
+            'Est. Econ. Value': indicative_value,
+            'ROI': roi,
+            '_selected': is_selected,
+        })
+
+    if not rows:
+        return None
+
+    df = pd.DataFrame(rows).sort_values('_selected', ascending=False)
+
+    # Summary for selected programme (or best available)
+    sel = [r for r in rows if r['_selected']]
+    if sel:
+        s = sel[0]
+    else:
+        s = max(rows, key=lambda r: r['Budget (USD)'])
+
+    summary = {
+        'programme_name': s['Programme'],
+        'programme_budget': s['Budget (USD)'],
+        'nl_overall': nl_overall,
+        'nl_undp': nl_undp,
+        'nl_recovery_used': float(s['NL Recovery'].replace('%','')),
+        'gdp_effect': float(s['GDP Effect'].replace('%','')),
+        'indicative_value': s['Ind. Value'],
+        'roi': s['ROI'],
+        'n_programmes': len(rows),
+        'n_affected': n_affected,
+        'n_total': n_total,
+        'is_selected': s['_selected'],
+    }
+    return df, summary
 
 def render_scorecard():
     csv_path = figures_dir / "scorecard_data.csv"
@@ -403,6 +589,136 @@ if mode == "📊 View Results":
         note_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:0 0 8px 8px;padding:1rem 1.8rem;margin-top:-1rem;font-size:.68rem;color:#8b949e;line-height:1.6;">{st.session_state['_scorecard_note']}</div>'''
         components.html(note_html, height=260, scrolling=False)
 
+    # INDICATIVE ECONOMIC REACTIVATION
+    if has_scorecard:
+        # Always show if UNDP projects exist, regardless of nightlight recovery
+        undp_csv_path = Path(f"data/{code}/external/undp_projects.csv")
+        if undp_csv_path.exists():
+            try:
+                _undp = pd.read_csv(undp_csv_path)
+                _undp['start_date'] = pd.to_datetime(_undp.get('start_date'), errors='coerce')
+                _evt = pd.Timestamp(config['events']['disaster_date'])
+                _int = pd.Timestamp(config['events'].get('intervention_start', config['events']['disaster_date']))
+                _post = _undp[_undp['start_date'] >= _evt].copy()
+                if 'total_budget' not in _post.columns and 'budget' in _post.columns:
+                    _post['total_budget'] = _post['budget']
+
+                # Get nightlight data
+                _sc_path = figures_dir / "scorecard_data.csv"
+                _nl_overall, _nl_undp, _n_aff, _n_tot = 0.0, 0.0, 0, 0
+                if _sc_path.exists():
+                    _sc = pd.read_csv(_sc_path)
+                    _nl = _sc[_sc['indicator'].str.contains('nightlight', case=False, na=False)]
+                    if not _nl.empty:
+                        _nl_overall = float(_nl.iloc[0].get('overall_recovery_pct', 0))
+                        _nl_undp = float(_nl.iloc[0].get('undp_recovery_pct', 0))
+                        _n_aff = int(_nl.iloc[0].get('n_affected_units', 0))
+                        _n_tot = int(_nl.iloc[0].get('n_total_units', 0))
+
+                has_nl = _nl_overall > 0 or _nl_undp > 0
+                ELASTICITY = 0.3
+
+                # Build programme table
+                _rows = []
+                if 'total_budget' in _post.columns:
+                    for _, _pr in _post.dropna(subset=['total_budget']).iterrows():
+                        _b = float(_pr['total_budget'])
+                        if pd.isna(_b) or _b <= 0: continue
+                        _t = str(_pr.get('title',''))[:55]
+                        _d = _pr['start_date'].strftime('%Y-%m-%d') if pd.notna(_pr['start_date']) else '-'
+                        _sel = (_d == str(_int.date()))
+
+                        if has_nl:
+                            if _sel and _nl_undp > 0:
+                                _rec = _nl_undp
+                            else:
+                                _rec = _nl_overall
+                            _gdp = _rec * ELASTICITY
+                            _rows.append({'Programme': _t, 'Start': _d, 'Budget (USD)': _b,
+                                          'NL Recovery': f"{_rec:.0f}%", 'Est. GDP Reactivation': f"{_gdp:.1f}%",
+                                          '_selected': _sel})
+                        else:
+                            _rows.append({'Programme': _t, 'Start': _d, 'Budget (USD)': _b,
+                                          'NL Recovery': '—', 'Est. GDP Reactivation': '—',
+                                          '_selected': _sel})
+
+                if _rows:
+                    _df = pd.DataFrame(_rows).sort_values('_selected', ascending=False)
+                    _sel_rows = [r for r in _rows if r['_selected']]
+                    _s = _sel_rows[0] if _sel_rows else max(_rows, key=lambda r: r['Budget (USD)'])
+
+                    with st.expander("\U0001f4b0 Indicative Economic Reactivation", expanded=False):
+                        if has_nl:
+                            _rec_used = float(_s['NL Recovery'].replace('%','')) if _s['NL Recovery'] != '—' else 0
+                            _gdp_eff = float(_s['Est. GDP Reactivation'].replace('%','')) if _s['Est. GDP Reactivation'] != '—' else 0
+                            sel_label = "Selected programme" if _s['_selected'] else "Largest programme"
+                            m1, m2, m3 = st.columns(3)
+                            with m1: st.metric(f"Budget ({sel_label})", f"${_s['Budget (USD)']:,.0f}")
+                            with m2: st.metric("NL Recovery", f"{_rec_used:.0f}%")
+                            with m3: st.metric("Est. GDP Reactivation", f"{_gdp_eff:.1f}%")
+                            _src = "since selected programme" if _s['_selected'] and _nl_undp > 0 else "overall"
+                            st.markdown(f"Based on **{_src}** nightlight recovery of **{_rec_used:.0f}%** "
+                                        f"across **{_n_aff}** affected units (of {_n_tot}): "
+                                        f"applying the Henderson et al. (2012) elasticity of 0.3, this corresponds to "
+                                        f"**{_gdp_eff:.1f}% GDP reactivation** in affected areas.")
+                        else:
+                            st.info("Nightlights show no measurable recovery yet. GDP reactivation estimates will appear "
+                                    "automatically once nightlight recovery is detected. The programme table below "
+                                    "shows all post-event UNDP programmes for reference.")
+
+                        # Programme table
+                        _disp = _df.drop(columns=['_selected']).copy()
+                        _disp['Budget (USD)'] = _disp['Budget (USD)'].apply(lambda x: f"${x:,.0f}")
+                        st.dataframe(_disp, hide_index=True, width='stretch')
+
+                        st.caption("**How to read this table:** Each row is a UNDP programme started after the event. "
+                                   "When nightlight recovery is available, 'NL Recovery' shows the recovery percentage "
+                                   "(since programme start for the selected one, overall for others), and "
+                                   "'Est. GDP Reactivation' applies the Henderson et al. (2012) elasticity of 0.3."
+                                   "\n\n**Caveats:** (1) Budget = allocations, not disbursements. "
+                                   "(2) Recovery reflects all actors, not just UNDP. "
+                                   "(3) The 0.3 elasticity is a global average. "
+                                   "(4) Correlational only \u2014 validate with econometrics in the Impact Measurement tab.")
+            except Exception:
+                pass
+
+        # DATA SOURCES & AVAILABILITY
+    if has_scorecard:
+        import base64 as _b64
+        _logos_dir = Path("logos")
+        _row1 = [
+            ("undp.png", "UNDP Projects", f"data/{code}/external/undp_projects.csv"),
+            ("nasa.png", "Nightlights (VIIRS)", f"data/{code}/gee_panel_{code}_centroid.csv"),
+            ("esa.png", "Radar (Sentinel-1)", f"data/{code}/gee_panel_{code}_centroid.csv"),
+            ("acled.png", "Conflict (ACLED)", f"data/{code}/external/acled_conflict.csv"),
+        ]
+        _row2 = [
+            ("google.png", "Google Trends", f"data/{code}/external/google_trends.csv"),
+            ("chc.png", "Rainfall (CHIRPS)", f"data/{code}/gee_panel_{code}_centroid.csv"),
+            ("wfp.png", "Food Prices (WFP)", f"data/{code}/external/wfp_prices.csv"),
+        ]
+        def _make_chip(logo, label, fpath):
+            pp = Path(fpath); ok = pp.exists()
+            try: nn = f" ({len(pd.read_csv(pp)):,})" if ok and fpath.endswith('.csv') else ""
+            except Exception: nn = ""
+            st_txt = f"\u2713{nn}" if ok else "\u25CB"
+            clr = "#3fb950" if ok else "#d29922"
+            lp = _logos_dir / logo
+            if lp.exists():
+                b = _b64.b64encode(lp.read_bytes()).decode()
+                img = f'<img src="data:image/png;base64,{b}" style="height:22px;width:22px;object-fit:contain;vertical-align:middle;"/>'
+            else:
+                img = ""
+            return f'<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin:3px 4px;">{img}<span style="font-size:.73rem;color:#8b949e;">{label}</span><span style="font-size:.73rem;font-weight:600;color:{clr};">{st_txt}</span></div>'
+        r1 = "".join(_make_chip(*s) for s in _row1)
+        r2 = "".join(_make_chip(*s) for s in _row2)
+        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 14px;">
+            <div style="font-size:.78rem;font-weight:600;color:#8b949e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Data</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;">{r1}</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:2px;">{r2}</div>
+        </div>'''
+        components.html(ds_html, height=130, scrolling=False)
+
     # DETAILED INDICATORS
     if figures_dir.exists():
         all_pngs = sorted(figures_dir.glob("*.png"))
@@ -433,9 +749,9 @@ if mode == "📊 View Results":
                             ts = [f for f in figs if f.name.startswith('ts_')]
                             mp = [f for f in figs if f.name.startswith('map_')]
                             if ts and mp:
-                                c1, c2 = st.columns([9, 11])
-                                with c1: st.image(str(ts[0]), use_container_width=True)
-                                with c2: st.image(str(mp[0]), use_container_width=True)
+                                c1, c2 = st.columns([45, 55])
+                                with c1: st.image(str(ts[0]), width='stretch')
+                                with c2: st.image(str(mp[0]), width='stretch')
                             elif ts: st.image(str(ts[0]), width='stretch')
                             elif mp: st.image(str(mp[0]), width='stretch')
                             st.markdown("---")
@@ -492,7 +808,7 @@ if mode == "📊 View Results":
                             if 'comprehensive_unified' in f.name and 'control_group' in df_table.columns:
                                 df_table = df_table[df_table['control_group'].str.contains('500m.*1.5km|500m-1.5km|0.5.*1.5', case=False, na=False)]
                             st.markdown(f"*{f.stem.replace('_',' ').title()}*")
-                            st.dataframe(df_table, hide_index=True, use_container_width=True)
+                            st.dataframe(df_table, hide_index=True, width='stretch')
                 ti += 1
 
             if raster_pairs:
@@ -502,27 +818,17 @@ if mode == "📊 View Results":
                         st.markdown(f"**{RASTER_NAMES.get(ind, ind.upper())}**")
                         st.image(str(f), width='stretch')
 
-    # DATA & DOWNLOADS
-    st.markdown('<div class="section-title">Data Availability</div>', unsafe_allow_html=True)
-    srcs = [("🗺️","Boundaries",config['boundaries']['file_path']),("🛰️","Satellite",f"data/{code}/gee_panel_{code}_centroid.csv"),("⚔️","Conflict",f"data/{code}/external/acled_conflict.csv"),("🏗️","UNDP Projects",f"data/{code}/external/undp_projects.csv"),("📈","Google Trends",f"data/{code}/external/google_trends.csv"),("📊","Panel",f"outputs/{code}/panel_data.csv")]
-    cols = st.columns(3)
-    for i, (ic, lb, pt) in enumerate(srcs):
-        pp = Path(pt); ok = pp.exists()
-        try: nn = f" ({len(pd.read_csv(pp)):,})" if ok and pt.endswith('.csv') else ""
-        except Exception: nn = ""
-        s = f'<span class="data-status data-ready">✓{nn}</span>' if ok else '<span class="data-status data-missing">○</span>'
-        with cols[i%3]: st.markdown(f'<div class="data-row"><div class="data-icon">{ic}</div><div class="data-label">{lb}</div>{s}</div>', unsafe_allow_html=True)
-
+    # DOWNLOADS
     if panel_path.exists():
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns([45, 55])
         with c1:
             with open(panel_path, 'rb') as f:
-                st.download_button("📥 Panel Dataset (CSV)", data=f, file_name=f"panel_data_{code}.csv", mime="text/csv", use_container_width=True)
+                st.download_button("📥 Panel Dataset (CSV)", data=f, file_name=f"panel_data_{code}.csv", mime="text/csv", width='stretch')
         sc = figures_dir / "scorecard_data.csv"
         if sc.exists():
             with c2:
                 with open(sc, 'rb') as f:
-                    st.download_button("📥 Scorecard (CSV)", data=f, file_name=f"scorecard_{code}.csv", mime="text/csv", use_container_width=True)
+                    st.download_button("📥 Scorecard (CSV)", data=f, file_name=f"scorecard_{code}.csv", mime="text/csv", width='stretch')
 
     summary_data = pd.read_csv(figures_dir/"summary_statistics.csv") if (figures_dir/"summary_statistics.csv").exists() else None
     if summary_data is not None:
@@ -548,7 +854,6 @@ elif mode == "⚙️ Setup & Run":
         ref = QUICK_REF[pick]
         cc = ref['iso'].lower()
         setup_country_code = cc
-        st.session_state.setup_run_country = cc
         existing = Path(f"config/{cc}.yaml").exists()
 
         if existing:
@@ -556,27 +861,29 @@ elif mode == "⚙️ Setup & Run":
                 ex = yaml.safe_load(_f)
             d_etype = ex.get('events',{}).get('disaster_type', ref['etype'])
             d_edate = ex.get('events',{}).get('disaster_date', ref['edate'])
+            d_idate = ex.get('events',{}).get('intervention_start', ref['edate'])
             d_start = ex.get('study_period_start', '2022-01-01')
             d_end = ex.get('study_period_end', '2025-12-31')
             d_admin = ex.get('boundaries',{}).get('admin_level', ref['admin'])
             st.caption(f"Editing `config/{cc}.yaml`")
         else:
-            d_etype, d_edate = ref['etype'], ref['edate']
+            d_etype, d_edate, d_idate = ref['etype'], ref['edate'], ref['edate']
             d_start = str(date(max(int(ref['edate'][:4])-1, 2000), 1, 1))
             d_end = '2025-12-31'
             d_admin = ref['admin']
 
         etypes = ["earthquake","conflict","flood","cyclone","drought"]
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1: etype = st.selectbox("Event type", etypes, index=etypes.index(d_etype), key="cf_et")
         with c2: edate = st.date_input("Event date", date.fromisoformat(d_edate), key="cf_ed")
+        with c3: idate = st.date_input("Intervention start", date.fromisoformat(d_idate), key="cf_id")
 
         c1, c2, c3 = st.columns(3)
         with c1: sstart = st.date_input("Study start", date.fromisoformat(d_start), key="cf_ss")
         with c2: send = st.date_input("Study end", date.fromisoformat(d_end), key="cf_se")
         with c3: admin_level = st.selectbox("Admin level", [1,2,3], index=[1,2,3].index(d_admin), key="cf_al")
 
-        if st.button("💾 Save Configuration", type="primary", use_container_width=True, key="save_cfg"):
+        if st.button("💾 Save Configuration", type="primary", width='stretch', key="save_cfg"):
             nc = {
                 'country_name': pick,
                 'country_code': ref['iso'],
@@ -585,7 +892,7 @@ elif mode == "⚙️ Setup & Run":
                 'events': {
                     'disaster_type': etype,
                     'disaster_date': edate.isoformat(),
-                    'intervention_start': edate.isoformat(),
+                    'intervention_start': idate.isoformat(),
                 },
                 'boundaries': {
                     'file_path': f"data/{cc}/boundaries/{cc}_admin{admin_level}.geojson",
@@ -605,33 +912,25 @@ elif mode == "⚙️ Setup & Run":
             with open(f"config/{cc}.yaml", 'w') as f_out:
                 yaml.dump(nc, f_out, default_flow_style=False, sort_keys=False)
             st.session_state.auto_select_country = cc
-            st.session_state.setup_run_country = cc
             st.success(f"✅ Saved `config/{cc}.yaml`")
             st.rerun()
 
     # CREDENTIALS
     st.markdown("---")
     with st.expander("🔑 Credentials (ACLED & GEE)", expanded=False):
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns([45, 55])
         with c1: acled_email = st.text_input("ACLED Email", value=os.getenv("ACLED_EMAIL",""), key="acled_em")
         with c2: acled_key = st.text_input("ACLED Key", value=os.getenv("ACLED_KEY",""), type="password", key="acled_k")
         st.caption("GEE: run `earthengine authenticate` in terminal once.")
 
     # RUN PIPELINE
-    run_country = setup_country_code or st.session_state.get('setup_run_country') or selected
-    st.caption(f"🎯 Pipeline target: `{run_country}` — commands will use `COUNTRY={run_country}`")
-    _rc = run_country
-    if Path(f'config/{_rc}.yaml').exists():
-        with open(f'config/{_rc}.yaml') as _f: _rc_cfg = yaml.safe_load(_f)
-        run_name = _rc_cfg.get('country_name', _rc)
-    else:
-        run_name = pick or config.get('country_name', selected)
+    run_country = setup_country_code or selected
+    run_name = pick or config.get('country_name', selected)
 
     st.markdown("---")
     st.markdown(f'<div class="section-title">Run Pipeline — {run_name}</div>', unsafe_allow_html=True)
 
     def run_cmd(cmd, desc):
-        st.code(f"$ {cmd}", language="bash")
         env = os.environ.copy()
         if acled_email: env['ACLED_EMAIL'] = acled_email
         if acled_key:
@@ -658,15 +957,16 @@ elif mode == "⚙️ Setup & Run":
     cols = st.columns(4)
     for i, (lb, cmd) in enumerate(steps):
         with cols[i % 4]:
-            if st.button(lb, use_container_width=True, key=f"run_{lb}"):
+            if st.button(lb, width='stretch', key=f"run_{lb}"):
                 run_cmd(cmd, lb)
 
     st.markdown("")
-    if st.button("▶️ Run Full Pipeline", use_container_width=True, type="primary", key="run_full"):
+    if st.button("▶️ Run Full Pipeline", width='stretch', type="primary", key="run_full"):
         run_cmd(
             f"make run COUNTRY={run_country} && python pipeline/recovery_scorecard.py --config config/{run_country}.yaml",
             "Full Pipeline"
         )
+        st.balloons()
 
     with st.expander("📝 Current Configuration"):
         st.code(yaml.dump(config, default_flow_style=False, sort_keys=False), language="yaml")
