@@ -274,6 +274,135 @@ st.markdown(f'<div class="metric-row"><div class="metric-box"><div class="metric
 
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
+# GDP per capita (World Bank WDI 2023) and population (UN estimates, millions)
+GDP_PC = {
+    'AFG':380,'BGD':2688,'COD':654,'ETH':1027,'PSE':3664,'HTI':1748,'IRQ':5765,
+    'LBN':4136,'MMR':1093,'SOM':446,'SDN':516,'SYR':530,'UKR':4534,'YEM':585,
+    'DZA':3900,'AGO':2080,'BFA':831,'BDI':259,'CMR':1663,'CAF':461,'TCD':694,
+    'CIV':2549,'EGY':3699,'GHA':2363,'KEN':2099,'LBY':6357,'MDG':507,'MWI':634,
+    'MLI':879,'MOZ':539,'NER':554,'NGA':1621,'RWA':966,'SSD':393,'TZA':1192,
+    'UGA':964,'ZMB':1138,'ZWE':1737,'KHM':1785,'CHN':12541,'IND':2485,'IDN':4788,
+    'NPL':1337,'PAK':1505,'PHL':3905,'LKA':3814,'VNM':4164,'IRN':4091,'JOR':4703,
+    'TUR':10616,'BOL':3345,'BRA':8917,'CHL':16265,'COL':6104,'ECU':6083,'SLV':4409,
+    'GTM':5474,'HND':2831,'MEX':10948,'PER':7002,'ARM':7279,'GEO':7629,'KGZ':1506,
+    'MDA':5563,'TJK':1058,'VEN':3500,'NIC':2150,'CUB':3800,'DOM':9700,'SEN':1690,
+}
+POP_M = {
+    'AFG':41.1,'BGD':173,'COD':102.3,'ETH':126.5,'PSE':5.4,'HTI':11.7,'IRQ':44.5,
+    'LBN':5.5,'MMR':54.4,'SOM':18.1,'SDN':48,'SYR':23.2,'UKR':37,'YEM':33.7,
+    'DZA':45.6,'AGO':36.7,'BFA':23.3,'BDI':13.2,'CMR':28.6,'CAF':5.7,'TCD':18.3,
+    'CIV':29.4,'EGY':109.3,'GHA':34,'KEN':55.1,'LBY':7,'MDG':30,'MWI':20.9,
+    'MLI':23.3,'MOZ':33.9,'NER':27,'NGA':223.8,'RWA':14,'SSD':11,'TZA':67,
+    'UGA':48.6,'ZMB':20.6,'ZWE':16.3,'KHM':17,'CHN':1412,'IND':1429,'IDN':278,
+    'NPL':30.9,'PAK':240.5,'PHL':117.3,'LKA':22,'VNM':100,'IRN':88.6,'JOR':11.3,
+    'TUR':85.3,'BOL':12.4,'BRA':216,'CHL':19.6,'COL':52.1,'ECU':18,'SLV':6.3,
+    'GTM':17.6,'HND':10.4,'MEX':129,'PER':34,'ARM':2.8,'GEO':3.7,'KGZ':7,
+    'MDA':2.6,'TJK':10.1,'VEN':28.4,'NIC':7,'CUB':11.1,'DOM':11.2,'SEN':17.7,
+}
+
+
+def load_wb_data(code, event_year):
+    """Load World Bank GDP and population data. Returns dict with pre-shock values."""
+    wb_path = Path("data/" + code + "/external/wb_indicators.csv")
+    result = {"gdp": 0, "gdp_pc": 0, "pop": 0, "year": 0, "source": "N/A"}
+    if not wb_path.exists():
+        # Fallback to hardcoded
+        cc = code.upper()
+        result["gdp_pc"] = GDP_PC.get(cc, 1000)
+        result["pop"] = POP_M.get(cc, 10) * 1000000
+        result["gdp"] = result["gdp_pc"] * result["pop"]
+        result["year"] = event_year - 1
+        result["source"] = "Hardcoded estimates"
+        return result
+    df = pd.read_csv(wb_path)
+    # Get the latest year BEFORE the event
+    for ind, key in [("gdp_current_usd", "gdp"), ("gdp_per_capita_usd", "gdp_pc"), ("population", "pop")]:
+        subset = df[(df["indicator"] == ind) & (df["year"] < event_year)].sort_values("year")
+        if not subset.empty:
+            result[key] = float(subset.iloc[-1]["value"])
+            result["year"] = int(subset.iloc[-1]["year"])
+    result["source"] = "World Bank WDI"
+    if result["gdp"] == 0 and result["gdp_pc"] > 0 and result["pop"] > 0:
+        result["gdp"] = result["gdp_pc"] * result["pop"]
+    return result
+
+
+def render_copilot_sidebar(config, figures_dir, code):
+    """AI co-pilot in sidebar."""
+    ctx = []
+    ctx.append("Country: " + config.get("country_name", "Unknown"))
+    ctx.append("Disaster: " + str(config["events"].get("disaster_date", "")))
+    ctx.append("Intervention: " + str(config["events"].get("intervention_start", "N/A")))
+    sc_path = figures_dir / "scorecard_data.csv"
+    if sc_path.exists():
+        sc = pd.read_csv(sc_path)
+        for _, r in sc.iterrows():
+            nm = r.get("short_name", r.get("indicator", ""))
+            ctx.append("  " + str(nm) + ": overall " + str(round(r.get("overall_recovery_pct", 0))) + "%, "
+                       + "programme " + str(round(r.get("undp_recovery_pct", 0))) + "%, "
+                       + str(int(r.get("n_affected_units", 0))) + "/" + str(int(r.get("n_total_units", 0))) + " units")
+    undp_csv = Path("data/" + code + "/external/undp_projects.csv")
+    if undp_csv.exists():
+        udf = pd.read_csv(undp_csv)
+        ctx.append("UNDP programmes: " + str(len(udf)))
+        if "total_budget" in udf.columns:
+            ctx.append("Total budget: $" + "{:,.0f}".format(udf["total_budget"].sum()))
+    context = chr(10).join(ctx)
+    country_name = config.get("country_name", "Unknown")
+
+    sys_prompt = (
+        "You are an expert development economist in a UNDP Early Recovery dashboard. "
+        "Help policy makers interpret satellite-based recovery monitoring data." + chr(10) + chr(10)
+        + "DATA for " + country_name + ":" + chr(10) + context + chr(10) + chr(10)
+        + "RULES:" + chr(10)
+        + "1. All indicators show CORRELATIONS, not causal impact." + chr(10)
+        + "2. UNDP is one of many actors - never imply sole attribution." + chr(10)
+        + "3. Nightlight-GDP elasticity of 0.3 (Henderson et al. 2012) is a global average." + chr(10)
+        + "4. 'Since Programme' = what happened AFTER intervention date, not BECAUSE of it." + chr(10)
+        + "5. Be concise, actionable, honest about limitations." + chr(10)
+        + "6. Recommend next steps when appropriate." + chr(10)
+        + "7. Keep responses under 200 words."
+    )
+
+    if "copilot_msgs" not in st.session_state:
+        st.session_state.copilot_msgs = []
+    for msg in st.session_state.copilot_msgs[-6:]:
+        role_label = "You" if msg["role"] == "user" else "Co-pilot"
+        st.markdown("**" + role_label + ":** " + msg["content"][:500])
+    query = st.text_input("Ask a question...", key="copilot_input", label_visibility="collapsed")
+    if query:
+        st.session_state.copilot_msgs.append({"role": "user", "content": query})
+        with st.spinner("..."):
+            try:
+                from openai import OpenAI
+                api_key = os.getenv("OPENAI_API_KEY")
+                if not api_key:
+                    env_path = Path(".env")
+                    if env_path.exists():
+                        for ln in env_path.read_text().splitlines():
+                            if ln.startswith("OPENAI_API_KEY="):
+                                api_key = ln.split("=", 1)[1].strip().strip(chr(34)).strip(chr(39))
+                if not api_key:
+                    reply = "API key not found. Add OPENAI_API_KEY=sk-... to .env and restart."
+                else:
+                    client = OpenAI(api_key=api_key)
+                    messages = [{"role": "system", "content": sys_prompt}]
+                    messages += [{"role": m["role"], "content": m["content"]}
+                                 for m in st.session_state.copilot_msgs[-6:]]
+                    resp = client.chat.completions.create(
+                        model="gpt-4o-mini", messages=messages,
+                        max_tokens=500, temperature=0.3)
+                    reply = resp.choices[0].message.content
+            except Exception as e:
+                reply = "Error: " + str(e)[:200]
+        st.session_state.copilot_msgs.append({"role": "assistant", "content": reply})
+        st.rerun()
+    if st.session_state.copilot_msgs:
+        if st.button("Clear", key="clr_copilot"):
+            st.session_state.copilot_msgs = []
+            st.rerun()
+
+
 def find_figs(indicator, pngs):
     out = []
     for f in pngs:
@@ -461,18 +590,21 @@ def render_scorecard():
 
         oc = max(0, min(overall, 100))
         uc = max(0, min(undp, 100)) if undp >= 0 else 0
-        if uc > oc and oc > 0:
+        if oc > 0 and uc > oc:
             uc = oc
+        if oc <= 0:
+            uc = 0
 
-        oc_c = "#3fb950" if overall >= 75 else ("#d29922" if overall >= 50 else "#f85149")
-        if undp < 0:
+        # Use CAPPED values for both display and bars
+        oc_c = "#3fb950" if oc >= 75 else ("#d29922" if oc >= 50 else "#f85149")
+        if uc < 0 or undp < 0:
             uc_c = "#484f58"; ud = "N/A"
-        elif undp >= 50:
-            uc_c = "#58a6ff"; ud = f"{undp:.0f}%"
-        elif undp >= 25:
-            uc_c = "#79c0ff"; ud = f"{undp:.0f}%"
+        elif uc >= 50:
+            uc_c = "#58a6ff"; ud = f"{uc:.0f}%"
+        elif uc >= 25:
+            uc_c = "#79c0ff"; ud = f"{uc:.0f}%"
         else:
-            uc_c = "#8b949e"; ud = f"{undp:.0f}%"
+            uc_c = "#8b949e"; ud = f"{uc:.0f}%"
 
         units_label = f"{n_aff} of {n_tot} units" if n_tot > 0 else ""
         rows_html += f"""
@@ -484,7 +616,7 @@ def render_scorecard():
                     <div class="sc-track"><div class="sc-fill-b" style="width:{uc}%;"></div></div>
                 </div>
                 <div class="sc-vals">
-                    <div class="sc-val-line"><span class="sc-pct" style="color:{oc_c};">{overall:.0f}%</span></div>
+                    <div class="sc-val-line"><span class="sc-pct" style="color:{oc_c};">{oc:.0f}%</span></div>
                     <div class="sc-val-line"><span class="sc-pct" style="color:{uc_c};">{ud}</span></div>
                 </div>
             </div>"""
@@ -584,105 +716,182 @@ if mode == "📊 View Results":
                         )
                         st.rerun()
 
-    # METHODOLOGY NOTE (below UNDP picker)
-    if has_scorecard and '_scorecard_note' in st.session_state:
-        note_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:0 0 8px 8px;padding:1rem 1.8rem;margin-top:-1rem;font-size:.68rem;color:#8b949e;line-height:1.6;">{st.session_state['_scorecard_note']}</div>'''
-        components.html(note_html, height=260, scrolling=False)
+    # METHODOLOGY & DISCLAIMERS
+    if has_scorecard:
+        disc_html = """<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1.2rem 1.6rem;margin:.5rem 0;">
+            <div style="font-size:.88rem;font-weight:600;color:#e6edf3;margin-bottom:.6rem;">Methodology & Assumptions</div>
+            <div style="font-size:.78rem;color:#c9d1d9;line-height:1.7;">
+                <p style="margin:0 0 .5rem 0;"><b>What this shows:</b> Observed changes in satellite indicators before and after disaster events and UNDP interventions. These are correlations, not causal estimates. UNDP is one of many actors on the ground, and observed recovery reflects the combined contributions of multiple organisations, government efforts, and local communities.</p>
+                <p style="margin:0 0 .5rem 0;"><b>How recovery is calculated:</b> &ldquo;Overall Recovery&rdquo; measures how much of the initial decline (from pre-event baseline to trough) has been regained. &ldquo;Since Selected Programme&rdquo; measures recovery after the intervention start date. Both capped at 100%, and &ldquo;Since Programme&rdquo; never exceeds &ldquo;Overall&rdquo;. Only units with &gt;10% decline are scored.</p>
+                <p style="margin:0 0 .5rem 0;"><b>GDP conversion:</b> Nightlight recovery converted to GDP using Henderson, Storeygard &amp; Weil (2012) elasticity of 0.3 (global average). Economic values use World Bank GDP per capita (WDI 2023) and UN population estimates, applied proportionally to affected administrative units.</p>
+                <p style="margin:0 0 .5rem 0;"><b>Limitations:</b> (1) Budget = allocations, not disbursements. (2) Satellite data affected by cloud cover, snow, sensors. (3) Causal attribution requires econometric methods (e.g., Synthetic Controls, Difference-in-Differences) in the Impact Measurement tab.</p>
+                <p style="margin:0;"><b>Purpose:</b> Rapid monitoring and prioritisation tool. Not a substitute for rigorous impact evaluation.</p>
+            </div>
+        </div>"""
+        st.markdown(disc_html, unsafe_allow_html=True)
 
     # INDICATIVE ECONOMIC REACTIVATION
     if has_scorecard:
-        # Always show if UNDP projects exist, regardless of nightlight recovery
-        undp_csv_path = Path(f"data/{code}/external/undp_projects.csv")
-        if undp_csv_path.exists():
+        _undp_path = Path("data/" + code + "/external/undp_projects.csv")
+        if _undp_path.exists():
             try:
-                _undp = pd.read_csv(undp_csv_path)
-                _undp['start_date'] = pd.to_datetime(_undp.get('start_date'), errors='coerce')
-                _evt = pd.Timestamp(config['events']['disaster_date'])
-                _int = pd.Timestamp(config['events'].get('intervention_start', config['events']['disaster_date']))
-                _post = _undp[_undp['start_date'] >= _evt].copy()
-                if 'total_budget' not in _post.columns and 'budget' in _post.columns:
-                    _post['total_budget'] = _post['budget']
-
-                # Get nightlight data
-                _sc_path = figures_dir / "scorecard_data.csv"
-                _nl_overall, _nl_undp, _n_aff, _n_tot = 0.0, 0.0, 0, 0
-                if _sc_path.exists():
-                    _sc = pd.read_csv(_sc_path)
-                    _nl = _sc[_sc['indicator'].str.contains('nightlight', case=False, na=False)]
+                _undp = pd.read_csv(_undp_path)
+                _undp["start_date"] = pd.to_datetime(_undp.get("start_date"), errors="coerce")
+                _evt = pd.Timestamp(config["events"]["disaster_date"])
+                _intv = pd.Timestamp(config["events"].get("intervention_start", config["events"]["disaster_date"]))
+                _post = _undp[_undp["start_date"] >= _evt].copy()
+                if "total_budget" not in _post.columns and "budget" in _post.columns:
+                    _post["total_budget"] = _post["budget"]
+                _sc_p = figures_dir / "scorecard_data.csv"
+                _nl_ov, _nl_un, _n_aff, _n_tot = 0.0, 0.0, 0, 0
+                if _sc_p.exists():
+                    _sc = pd.read_csv(_sc_p)
+                    _nl = _sc[_sc["indicator"].str.contains("nightlight", case=False, na=False)]
                     if not _nl.empty:
-                        _nl_overall = float(_nl.iloc[0].get('overall_recovery_pct', 0))
-                        _nl_undp = float(_nl.iloc[0].get('undp_recovery_pct', 0))
-                        _n_aff = int(_nl.iloc[0].get('n_affected_units', 0))
-                        _n_tot = int(_nl.iloc[0].get('n_total_units', 0))
+                        _nl_ov = float(_nl.iloc[0].get("overall_recovery_pct", 0))
+                        _nl_un = float(_nl.iloc[0].get("undp_recovery_pct", 0))
+                        _n_aff = int(_nl.iloc[0].get("n_affected_units", 0))
+                        _n_tot = int(_nl.iloc[0].get("n_total_units", 0))
+                if _nl_ov > 0 and _nl_un > _nl_ov: _nl_un = _nl_ov
+                if _nl_ov <= 0: _nl_un = 0
+                _has_nl = _nl_ov > 0 or _nl_un > 0
+                _EL = 0.3
+                _evt_year = _evt.year
+                _wb = load_wb_data(code, _evt_year)
+                _gdp_pc = _wb["gdp_pc"]
+                _nat_gdp = _wb["gdp"]
+                _pop = _wb["pop"]
+                _wb_year = _wb["year"]
+                _wb_src = _wb["source"]
+                _cov = _n_aff / max(_n_tot, 1)
+                _aff_pop = _pop * _cov
+                _aff_gdp = _nat_gdp * _cov
+                _sel_b, _tot_b = 0.0, 0.0
+                if "total_budget" in _post.columns:
+                    _tot_b = _post["total_budget"].dropna().sum()
+                    _sm = _post[_post["start_date"].dt.date.astype(str) == str(_intv.date())]
+                    if not _sm.empty and pd.notna(_sm.iloc[0]["total_budget"]):
+                        _sel_b = float(_sm.iloc[0]["total_budget"])
+                    elif not _post.dropna(subset=["total_budget"]).empty:
+                        _sel_b = float(_post.dropna(subset=["total_budget"]).iloc[0]["total_budget"])
+                if _nl_un > 0:
+                    _rec = _nl_un; _rlbl = "since selected programme"
+                elif _nl_ov > 0:
+                    _rec = _nl_ov; _rlbl = "overall"
+                else:
+                    _rec = 0; _rlbl = "N/A"
+                _gdp_eff = _rec * _EL
+                _react = _aff_gdp * (_gdp_eff / 100)
+                _bshare = _sel_b / _tot_b if _tot_b > 0 else 1.0
+                _prog_react = _react * _bshare
+                _roi = _prog_react / _sel_b if _sel_b > 0 else 0
 
-                has_nl = _nl_overall > 0 or _nl_undp > 0
-                ELASTICITY = 0.3
+                with st.expander("Indicative Economic Reactivation", expanded=False):
+                    if _has_nl and _sel_b > 0:
+                        def _fmt_big(v):
+                            if v >= 1e9: return "${:.1f}B".format(v/1e9)
+                            if v >= 1e6: return "${:.1f}M".format(v/1e6)
+                            if v >= 1e3: return "${:.0f}K".format(v/1e3)
+                            return "${:,.0f}".format(v)
+                        _cards = [
+                            ("Pre-shock GDP", _fmt_big(_nat_gdp), str(_wb_year)),
+                            ("Programme Budget", _fmt_big(_sel_b), ""),
+                            ("NL Recovery", "{:.0f}%".format(_rec), _rlbl),
+                            ("Est. Reactivation", _fmt_big(_prog_react), ""),
+                            ("Indicative ROI", "{:,.1f}:1".format(_roi), ""),
+                        ]
+                        _cards_html = '<div style="display:flex;justify-content:center;gap:1.5rem;margin:.8rem 0;">'
+                        for _lbl, _val, _sub in _cards:
+                            _cards_html += (
+                                '<div style="text-align:center;min-width:120px;">'
+                                + '<div style="font-size:.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;">'
+                                + _lbl + '</div>'
+                                + '<div style="font-size:1.4rem;font-weight:700;color:#e6edf3;">'
+                                + _val + '</div>'
+                                + ('<div style="font-size:.65rem;color:#8b949e;">' + _sub + '</div>' if _sub else '')
+                                + '</div>'
+                            )
+                        _cards_html += '</div>'
+                        st.markdown(_cards_html, unsafe_allow_html=True)
 
-                # Build programme table
-                _rows = []
-                if 'total_budget' in _post.columns:
-                    for _, _pr in _post.dropna(subset=['total_budget']).iterrows():
-                        _b = float(_pr['total_budget'])
-                        if pd.isna(_b) or _b <= 0: continue
-                        _t = str(_pr.get('title',''))[:55]
-                        _d = _pr['start_date'].strftime('%Y-%m-%d') if pd.notna(_pr['start_date']) else '-'
-                        _sel = (_d == str(_int.date()))
+                        # Explanation as clean HTML to avoid markdown/LaTeX issues
+                        _expl = (
+                            '<div style="font-size:.85rem;color:#c9d1d9;line-height:1.7;margin:.8rem 0;">'
+                            '<p style="margin:0 0 .6rem 0;">'
+                            '<b>Step 1 - Nightlight recovery:</b> '
+                            + '{} nightlight recovery of <b>{:.0f}%</b>'.format(_rlbl.capitalize(), _rec)
+                            + ' was observed across <b>{:,}</b> affected administrative units.'.format(_n_aff)
+                            + '</p>'
+                            '<p style="margin:0 0 .6rem 0;">'
+                            '<b>Step 2 - Pre-shock GDP:</b> '
+                            + 'The national GDP before the shock was '
+                            + '<b>${:,.0f}</b> ({}, {}).'.format(_nat_gdp, _wb_src, _wb_year)
+                            + ' The affected area ({:,.0f} of {:,.0f} admin units, '.format(_n_aff, _n_tot)
+                            + '<b>{:.0%}</b> of the country) '.format(_cov)
+                            + 'has an estimated GDP of <b>${:,.0f}</b>.'.format(_aff_gdp)
+                            + '</p>'
+                            '<p style="margin:0 0 .6rem 0;">'
+                            '<b>Step 3 - GDP reactivation:</b> '
+                            + 'Applying the Henderson et al. (2012) elasticity of 0.3, '
+                            + '{:.0f}% nightlight recovery implies '.format(_rec)
+                            + '<b>{:.1f}% GDP reactivation</b>, '.format(_gdp_eff)
+                            + 'equivalent to approximately <b>${:,.0f}</b> '.format(_react)
+                            + 'in economic activity across all actors on the ground.'
+                            + '</p>'
+                            '<p style="margin:0 0 .6rem 0;">'
+                            '<b>Step 4 - Programme attribution:</b> '
+                            + 'This programme represents '
+                            + '<b>{:.1%}</b> of total post-event UNDP spending '.format(_bshare)
+                            + '(${:,.0f} of ${:,.0f}). '.format(_sel_b, _tot_b)
+                            + 'Attributing a proportional share yields '
+                            + '<b>${:,.0f}</b> '.format(_prog_react)
+                            + 'with a benefit-cost ratio of <b>{:,.1f}:1</b>.'.format(_roi)
+                            + '</p>'
+                            '</div>'
+                        )
+                        st.markdown(_expl, unsafe_allow_html=True)
 
-                        if has_nl:
-                            if _sel and _nl_undp > 0:
-                                _rec = _nl_undp
+                        st.caption(
+                            "Correlational estimate for rapid screening, not causal impact. "
+                            "Recovery reflects all actors on the ground, not just UNDP. "
+                            "Programme share assumes proportional contribution (a simplification). "
+                            "GDP data: " + _wb_src + " (" + str(_wb_year) + "). "
+                            "Affected area GDP estimated as proportional share of national GDP "
+                            "based on fraction of admin units affected. "
+                            "Henderson et al. (2012) elasticity of 0.3 is a global average that may vary locally."
+                        )
+                    elif _has_nl:
+                        st.metric("NL Recovery", "{:.0f}%".format(_rec))
+                        st.markdown("Recovery detected but no programme budget available for ROI.")
+                    else:
+                        st.info("Nightlights show no measurable recovery yet. Estimates appear when recovery is detected.")
+                    if "total_budget" in _post.columns and len(_post.dropna(subset=["total_budget"])) > 0:
+                        _rows = []
+                        for _, _pr in _post.dropna(subset=["total_budget"]).iterrows():
+                            _b = float(_pr["total_budget"])
+                            if pd.isna(_b) or _b <= 0: continue
+                            _t = str(_pr.get("title", ""))[:55]
+                            _d = _pr["start_date"].strftime("%Y-%m-%d") if pd.notna(_pr["start_date"]) else "-"
+                            _bs = _b / _tot_b if _tot_b > 0 else 0
+                            if _has_nl:
+                                _pr_r = _react * _bs
+                                _pr_roi = _pr_r / _b if _b > 0 else 0
+                                _rows.append({"Programme": _t, "Start": _d, "Budget": _b, "Share": "{:.0%}".format(_bs),
+                                              "Est. Reactivation": _pr_r, "ROI": _pr_roi})
                             else:
-                                _rec = _nl_overall
-                            _gdp = _rec * ELASTICITY
-                            _rows.append({'Programme': _t, 'Start': _d, 'Budget (USD)': _b,
-                                          'NL Recovery': f"{_rec:.0f}%", 'Est. GDP Reactivation': f"{_gdp:.1f}%",
-                                          '_selected': _sel})
-                        else:
-                            _rows.append({'Programme': _t, 'Start': _d, 'Budget (USD)': _b,
-                                          'NL Recovery': '—', 'Est. GDP Reactivation': '—',
-                                          '_selected': _sel})
+                                _rows.append({"Programme": _t, "Start": _d, "Budget": _b, "Share": "{:.0%}".format(_bs),
+                                              "Est. Reactivation": 0, "ROI": 0})
+                        if _rows:
+                            _tdf = pd.DataFrame(_rows)
+                            _tdf["Budget"] = _tdf["Budget"].apply(lambda x: "${:,.0f}".format(x))
+                            _tdf["Est. Reactivation"] = _tdf["Est. Reactivation"].apply(lambda x: "${:,.0f}".format(x) if x > 0 else chr(8212))
+                            _tdf["ROI"] = _tdf["ROI"].apply(lambda x: "{:,.1f}:1".format(x) if x > 0 else chr(8212))
+                            st.dataframe(_tdf, hide_index=True, width="stretch")
 
-                if _rows:
-                    _df = pd.DataFrame(_rows).sort_values('_selected', ascending=False)
-                    _sel_rows = [r for r in _rows if r['_selected']]
-                    _s = _sel_rows[0] if _sel_rows else max(_rows, key=lambda r: r['Budget (USD)'])
-
-                    with st.expander("\U0001f4b0 Indicative Economic Reactivation", expanded=False):
-                        if has_nl:
-                            _rec_used = float(_s['NL Recovery'].replace('%','')) if _s['NL Recovery'] != '—' else 0
-                            _gdp_eff = float(_s['Est. GDP Reactivation'].replace('%','')) if _s['Est. GDP Reactivation'] != '—' else 0
-                            sel_label = "Selected programme" if _s['_selected'] else "Largest programme"
-                            m1, m2, m3 = st.columns(3)
-                            with m1: st.metric(f"Budget ({sel_label})", f"${_s['Budget (USD)']:,.0f}")
-                            with m2: st.metric("NL Recovery", f"{_rec_used:.0f}%")
-                            with m3: st.metric("Est. GDP Reactivation", f"{_gdp_eff:.1f}%")
-                            _src = "since selected programme" if _s['_selected'] and _nl_undp > 0 else "overall"
-                            st.markdown(f"Based on **{_src}** nightlight recovery of **{_rec_used:.0f}%** "
-                                        f"across **{_n_aff}** affected units (of {_n_tot}): "
-                                        f"applying the Henderson et al. (2012) elasticity of 0.3, this corresponds to "
-                                        f"**{_gdp_eff:.1f}% GDP reactivation** in affected areas.")
-                        else:
-                            st.info("Nightlights show no measurable recovery yet. GDP reactivation estimates will appear "
-                                    "automatically once nightlight recovery is detected. The programme table below "
-                                    "shows all post-event UNDP programmes for reference.")
-
-                        # Programme table
-                        _disp = _df.drop(columns=['_selected']).copy()
-                        _disp['Budget (USD)'] = _disp['Budget (USD)'].apply(lambda x: f"${x:,.0f}")
-                        st.dataframe(_disp, hide_index=True, width='stretch')
-
-                        st.caption("**How to read this table:** Each row is a UNDP programme started after the event. "
-                                   "When nightlight recovery is available, 'NL Recovery' shows the recovery percentage "
-                                   "(since programme start for the selected one, overall for others), and "
-                                   "'Est. GDP Reactivation' applies the Henderson et al. (2012) elasticity of 0.3."
-                                   "\n\n**Caveats:** (1) Budget = allocations, not disbursements. "
-                                   "(2) Recovery reflects all actors, not just UNDP. "
-                                   "(3) The 0.3 elasticity is a global average. "
-                                   "(4) Correlational only \u2014 validate with econometrics in the Impact Measurement tab.")
             except Exception:
                 pass
 
-        # DATA SOURCES & AVAILABILITY
+            # DATA SOURCES & AVAILABILITY
     if has_scorecard:
         import base64 as _b64
         _logos_dir = Path("logos")
@@ -817,6 +1026,12 @@ if mode == "📊 View Results":
                     for ind, f in raster_pairs:
                         st.markdown(f"**{RASTER_NAMES.get(ind, ind.upper())}**")
                         st.image(str(f), width='stretch')
+
+    # AI CO-PILOT IN SIDEBAR
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("#### " + chr(129302) + " AI Co-pilot")
+        render_copilot_sidebar(config, figures_dir, code)
 
     # DOWNLOADS
     if panel_path.exists():
