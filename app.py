@@ -369,7 +369,7 @@ def render_copilot_sidebar(config, figures_dir, code):
     for msg in st.session_state.copilot_msgs[-6:]:
         role_label = "You" if msg["role"] == "user" else "Co-pilot"
         st.markdown("**" + role_label + ":** " + msg["content"][:500])
-    query = st.text_input("Ask a question...", key="copilot_input", label_visibility="collapsed")
+    query = st.text_input("", key="copilot_input", label_visibility="collapsed", placeholder="Type your question here...")
     if query:
         st.session_state.copilot_msgs.append({"role": "user", "content": query})
         with st.spinner("..."):
@@ -1030,7 +1030,7 @@ if mode == "📊 View Results":
     # AI CO-PILOT IN SIDEBAR
     with st.sidebar:
         st.markdown("---")
-        st.markdown("#### " + chr(129302) + " AI Co-pilot")
+        st.markdown("#### \U0001f916 AI Co-Pilot")
         render_copilot_sidebar(config, figures_dir, code)
 
     # DOWNLOADS
