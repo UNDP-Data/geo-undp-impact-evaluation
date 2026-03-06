@@ -95,6 +95,30 @@ COUNTRIES = {
     'syria': {'flag':'🇸🇾','name':'Syria','event':'M7.8 Earthquake','event_date':'Feb 6, 2023'},
     'dr_congo': {'flag':'🇨🇩','name':'DR Congo','event':'M23 Conflict','event_date':'Mar 1, 2022'},
     'myanmar': {'flag':'🇲🇲','name':'Myanmar','event':'M7.7 Earthquake','event_date':'Mar 28, 2025'},
+    # Additional countries
+    'Albania':  {'iso':'ALB','acled':'Albania','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Argentina':  {'iso':'ARG','acled':'Argentina','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Azerbaijan':  {'iso':'AZE','acled':'Azerbaijan','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Bosnia and Herzegovina':  {'iso':'BIH','acled':'Bosnia and Herzegovina','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Botswana':  {'iso':'BWA','acled':'Botswana','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Cape Verde':  {'iso':'CPV','acled':'Cape Verde','etype':'drought','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Congo':  {'iso':'COG','acled':'Republic of Congo','etype':'flood','edate':'2025-01-01','commodity':'Cassava flour','admin':2},
+    'Equatorial Guinea':  {'iso':'GNQ','acled':'Equatorial Guinea','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Gabon':  {'iso':'GAB','acled':'Gabon','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Kazakhstan':  {'iso':'KAZ','acled':'Kazakhstan','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Kosovo':  {'iso':'XKX','acled':'Kosovo','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Malaysia':  {'iso':'MYS','acled':'Malaysia','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Mongolia':  {'iso':'MNG','acled':'Mongolia','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Montenegro':  {'iso':'MNE','acled':'Montenegro','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Morocco':  {'iso':'MAR','acled':'Morocco','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'North Macedonia':  {'iso':'MKD','acled':'North Macedonia','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Paraguay':  {'iso':'PRY','acled':'Paraguay','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Russia':  {'iso':'RUS','acled':'Russia','etype':'conflict','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Saint Kitts and Nevis':  {'iso':'KNA','acled':'Saint Kitts and Nevis','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Serbia':  {'iso':'SRB','acled':'Serbia','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Thailand':  {'iso':'THA','acled':'Thailand','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Turkmenistan':  {'iso':'TKM','acled':'Turkmenistan','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
+    'Uruguay':  {'iso':'URY','acled':'Uruguay','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
 }
 
 THEMES = {
@@ -176,7 +200,6 @@ QUICK_REF = {
     # Middle East
     'Iran':         {'iso':'IRN','acled':'Iran','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
     'Jordan':       {'iso':'JOR','acled':'Jordan','etype':'flood','edate':'2025-01-01','commodity':'Bread','admin':2},
-    'Libya':        {'iso':'LBY','acled':'Libya','etype':'conflict','edate':'2025-01-01','commodity':'Bread','admin':2},
     'Turkey':       {'iso':'TUR','acled':'Turkey','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
     # Americas
     'Bolivia':      {'iso':'BOL','acled':'Bolivia','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
@@ -193,7 +216,46 @@ QUICK_REF = {
     'Nicaragua':    {'iso':'NIC','acled':'Nicaragua','etype':'cyclone','edate':'2025-01-01','commodity':'Beans','admin':2},
     'Peru':         {'iso':'PER','acled':'Peru','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
     'Venezuela':    {'iso':'VEN','acled':'Venezuela','etype':'conflict','edate':'2025-01-01','commodity':'Rice','admin':2},
-    # Europe & Central Asia
+    # Caribbean
+    'Jamaica':      {'iso':'JAM','acled':'Jamaica','etype':'cyclone','edate':'2025-10-28','commodity':'Rice','admin':2},
+    'Bahamas':      {'iso':'BHS','acled':'Bahamas','etype':'cyclone','edate':'2025-10-30','commodity':'Rice','admin':2},
+    'Trinidad and Tobago': {'iso':'TTO','acled':'Trinidad and Tobago','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Barbados':     {'iso':'BRB','acled':'Barbados','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Guyana':       {'iso':'GUY','acled':'Guyana','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Suriname':     {'iso':'SUR','acled':'Suriname','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Belize':       {'iso':'BLZ','acled':'Belize','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Costa Rica':   {'iso':'CRI','acled':'Costa Rica','etype':'earthquake','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Panama':       {'iso':'PAN','acled':'Panama','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Grenada':      {'iso':'GRD','acled':'Grenada','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Saint Lucia':  {'iso':'LCA','acled':'Saint Lucia','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Saint Vincent and the Grenadines': {'iso':'VCT','acled':'Saint Vincent and the Grenadines','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Antigua and Barbuda': {'iso':'ATG','acled':'Antigua and Barbuda','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Dominica':     {'iso':'DMA','acled':'Dominica','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    # Pacific Islands
+    'Tonga':        {'iso':'TON','acled':'Tonga','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Samoa':        {'iso':'WSM','acled':'Samoa','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Solomon Islands': {'iso':'SLB','acled':'Solomon Islands','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Timor-Leste':  {'iso':'TLS','acled':'Timor-Leste','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Tuvalu':       {'iso':'TUV','acled':'Tuvalu','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Marshall Islands': {'iso':'MHL','acled':'Marshall Islands','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Micronesia':   {'iso':'FSM','acled':'Micronesia','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    # South/Central Asia
+    'Bhutan':       {'iso':'BTN','acled':'Bhutan','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Maldives':     {'iso':'MDV','acled':'Maldives','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    # Africa (additional)
+    'Benin':        {'iso':'BEN','acled':'Benin','etype':'flood','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Comoros':      {'iso':'COM','acled':'Comoros','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Djibouti':     {'iso':'DJI','acled':'Djibouti','etype':'drought','edate':'2025-01-01','commodity':'Wheat flour','admin':2},
+    'Eswatini':     {'iso':'SWZ','acled':'Eswatini','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Gambia':       {'iso':'GMB','acled':'Gambia','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Guinea-Bissau': {'iso':'GNB','acled':'Guinea-Bissau','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Lesotho':      {'iso':'LSO','acled':'Lesotho','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Liberia':      {'iso':'LBR','acled':'Liberia','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Namibia':      {'iso':'NAM','acled':'Namibia','etype':'drought','edate':'2025-01-01','commodity':'Maize','admin':2},
+    'Sao Tome and Principe': {'iso':'STP','acled':'Sao Tome and Principe','etype':'flood','edate':'2025-01-01','commodity':'Rice','admin':2},
+    'Seychelles':   {'iso':'SYC','acled':'Seychelles','etype':'cyclone','edate':'2025-01-01','commodity':'Rice','admin':2},
+        # Caribbean
+        # Europe & Central Asia
     'Armenia':      {'iso':'ARM','acled':'Armenia','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
     'Georgia':      {'iso':'GEO','acled':'Georgia','etype':'conflict','edate':'2025-01-01','commodity':'Bread','admin':2},
     'Kyrgyzstan':   {'iso':'KGZ','acled':'Kyrgyzstan','etype':'earthquake','edate':'2025-01-01','commodity':'Bread','admin':2},
@@ -285,7 +347,11 @@ GDP_PC = {
     'NPL':1337,'PAK':1505,'PHL':3905,'LKA':3814,'VNM':4164,'IRN':4091,'JOR':4703,
     'TUR':10616,'BOL':3345,'BRA':8917,'CHL':16265,'COL':6104,'ECU':6083,'SLV':4409,
     'GTM':5474,'HND':2831,'MEX':10948,'PER':7002,'ARM':7279,'GEO':7629,'KGZ':1506,
-    'MDA':5563,'TJK':1058,'VEN':3500,'NIC':2150,'CUB':3800,'DOM':9700,'SEN':1690,
+    'MDA':5563,'TJK':1058,'VEN':3500,'NIC':2150,'CUB':3800,'DOM':9700,'SEN':1690,'JAM':5750,'CUB':3800,'BHS':28600,'TTO':17400,'BRB':16000,'GUY':14700,
+    'SUR':5800,'BLZ':4800,'CRI':12500,'PAN':14400,'GRD':10400,'LCA':10400,
+    'VCT':8600,'ATG':16700,'DMA':7700,'TON':5000,'WSM':4300,'SLB':2300,
+    'TLS':1900,'BEN':1400,'DJI':3400,'SWZ':4000,'GMB':840,'GNB':700,
+    'LBR':650,'NAM':5000,'LSO':1100,
 }
 POP_M = {
     'AFG':41.1,'BGD':173,'COD':102.3,'ETH':126.5,'PSE':5.4,'HTI':11.7,'IRQ':44.5,
@@ -297,7 +363,11 @@ POP_M = {
     'NPL':30.9,'PAK':240.5,'PHL':117.3,'LKA':22,'VNM':100,'IRN':88.6,'JOR':11.3,
     'TUR':85.3,'BOL':12.4,'BRA':216,'CHL':19.6,'COL':52.1,'ECU':18,'SLV':6.3,
     'GTM':17.6,'HND':10.4,'MEX':129,'PER':34,'ARM':2.8,'GEO':3.7,'KGZ':7,
-    'MDA':2.6,'TJK':10.1,'VEN':28.4,'NIC':7,'CUB':11.1,'DOM':11.2,'SEN':17.7,
+    'MDA':2.6,'TJK':10.1,'VEN':28.4,'NIC':7,'CUB':11.1,'DOM':11.2,'SEN':17.7,'JAM':2.8,'CUB':11.1,'BHS':0.4,'TTO':1.4,'BRB':0.3,'GUY':0.8,
+    'SUR':0.6,'BLZ':0.4,'CRI':5.2,'PAN':4.4,'GRD':0.1,'LCA':0.2,
+    'VCT':0.1,'ATG':0.1,'DMA':0.07,'TON':0.1,'WSM':0.2,'SLB':0.7,
+    'TLS':1.3,'BEN':13.4,'DJI':1.1,'SWZ':1.2,'GMB':2.7,'GNB':2.1,
+    'LBR':5.3,'NAM':2.6,'LSO':2.3,
 }
 
 
@@ -369,7 +439,7 @@ def render_copilot_sidebar(config, figures_dir, code):
     for msg in st.session_state.copilot_msgs[-6:]:
         role_label = "You" if msg["role"] == "user" else "Co-pilot"
         st.markdown("**" + role_label + ":** " + msg["content"][:500])
-    query = st.text_input("", key="copilot_input", label_visibility="collapsed", placeholder="Type your question here...")
+    query = st.text_input("Question", key="copilot_input", label_visibility="collapsed", placeholder="Type your question here...")
     if query:
         st.session_state.copilot_msgs.append({"role": "user", "content": query})
         with st.spinner("..."):
