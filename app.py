@@ -83,6 +83,15 @@ COUNTRIES = {
     'syr': {'flag':'🇸🇾','name':'Syria','event':'M7.8 Earthquake','event_date':'Feb 6, 2023'},
     'cod': {'flag':'🇨🇩','name':'DR Congo','event':'M23 Conflict','event_date':'Mar 1, 2022'},
     'som': {'flag':'🇸🇴','name':'Somalia','event':'Drought','event_date':'Jan 1, 2023'},
+    'jam': {'flag':'🇯🇲','name':'Jamaica','event':'Hurricane Melissa','event_date':'Oct 28, 2025'},
+    'jamaica': {'flag':'🇯🇲','name':'Jamaica','event':'Hurricane Melissa','event_date':'Oct 28, 2025'},
+    'cub': {'flag':'🇨🇺','name':'Cuba','event':'Hurricane Melissa','event_date':'Oct 29, 2025'},
+    'bhs': {'flag':'🇧🇸','name':'Bahamas','event':'Hurricane Melissa','event_date':'Oct 30, 2025'},
+    'hti': {'flag':'🇭🇹','name':'Haiti','event':'Armed Conflict','event_date':'Mar 1, 2024'},
+    'lbn': {'flag':'🇱🇧','name':'Lebanon','event':'Armed Conflict','event_date':'Oct 1, 2024'},
+    'eth': {'flag':'🇪🇹','name':'Ethiopia','event':'Armed Conflict','event_date':'Nov 4, 2020'},
+    'irq': {'flag':'🇮🇶','name':'Iraq','event':'Conflict','event_date':'Jan 1, 2022'},
+    'yem': {'flag':'🇾🇪','name':'Yemen','event':'Armed Conflict','event_date':'Jan 1, 2022'},
     'yem': {'flag':'🇾🇪','name':'Yemen','event':'Armed Conflict','event_date':'Jan 1, 2022'},
     'hti': {'flag':'🇭🇹','name':'Haiti','event':'Armed Conflict','event_date':'Mar 1, 2024'},
     'lbn': {'flag':'🇱🇧','name':'Lebanon','event':'Armed Conflict','event_date':'Oct 1, 2024'},
@@ -1221,13 +1230,27 @@ elif mode == "⚙️ Setup & Run":
         if acled_key:
             env['ACLED_KEY'] = acled_key
             env['ACLED_PASSWORD'] = acled_key
-        with st.status(f"{desc}...", expanded=True) as s:
+        with st.status(desc + "...", expanded=True) as s:
             try:
-                r = subprocess.run(cmd, shell=True, capture_output=True, text=True, env=env, timeout=900)
-                st.code(r.stdout[-3000:] or "(none)", language="bash")
-                if r.returncode == 0: s.update(label=f"✅ {desc}", state="complete")
-                else: st.error(r.stderr[-500:]); s.update(label=f"⚠️ {desc}", state="error")
-            except subprocess.TimeoutExpired: s.update(label="⏱️ Timeout (15 min)", state="error")
+                import time as _t
+                proc = subprocess.Popen(
+                    cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, env=env, bufsize=1)
+                output_box = st.empty()
+                log = []
+                for line in iter(proc.stdout.readline, ""):
+                    log.append(line.rstrip())
+                    if len(log) > 200: log = log[-200:]
+                    output_box.code(chr(10).join(log[-40:]), language="bash")
+                proc.wait()
+                output_box.code(chr(10).join(log[-60:]) or "(no output)", language="bash")
+                if proc.returncode == 0:
+                    s.update(label="Done: " + desc, state="complete")
+                else:
+                    s.update(label="Error: " + desc, state="error")
+            except Exception as e:
+                st.error(str(e)[:300])
+                s.update(label="Error: " + desc, state="error")
 
     steps = [
         ("🗺️ Boundaries", f"make boundaries COUNTRY={run_country}"),

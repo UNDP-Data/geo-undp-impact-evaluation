@@ -5,7 +5,7 @@ study_period_end: '2026-01-30'
 events:
   disaster_type: earthquake
   disaster_date: '2025-03-28'
-  intervention_start: '2025-04-01'
+  intervention_start: '2025-09-01'
 disaster_label: Earthquake
 epicenter:
   lat: 20.88
