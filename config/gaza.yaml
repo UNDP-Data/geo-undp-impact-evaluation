@@ -19,8 +19,10 @@ boundaries:
 acled_country_name: Palestine
 wfp_commodity: Bread
 unit_filter:
-- PS0255
-- PS0260
-- PS0265
-- PS0270
-- PS0275
+- Gaza
+- North Gaza
+- Deir Al-Balah
+- Khan Younis
+- Rafah
+- Deir Al Balah
+- Khan Yunis

@@ -20,7 +20,7 @@ from pathlib import Path
 
 INDICATORS = {
     'nightlights': {'name': 'Nighttime Lights (VIIRS)', 'short': 'Nightlights', 'icon': '💡',
-        'higher_is_better': True, 'description': 'Economic activity & energy access', 'seasonal': True},
+        'higher_is_better': True, 'description': 'Economic activity & energy access', 'seasonal': False},
     'ndvi': {'name': 'Vegetation (NDVI)', 'short': 'Vegetation', 'icon': '🌿',
         'higher_is_better': True, 'description': 'Agricultural & ecosystem health', 'seasonal': True},
     'vh': {'name': 'SAR VH Backscatter', 'short': 'Radar VH', 'icon': '📡',
@@ -52,8 +52,17 @@ def compute_unit_level_recovery(panel, col, event_date, intervention_date, highe
         if len(udata) < 6:
             continue
 
-        pre = udata[udata.index < event_date]
-        post = udata[udata.index >= event_date]
+        # For monthly data: if event is in the last 7 days of the month,
+        # the event month is mostly pre-event data, so include it in pre
+        # and start post from the next month
+        _evt = pd.Timestamp(event_date)
+        if _evt.day > 21:
+            # Event late in month — event month is pre, next month is first post
+            _post_start = (_evt + pd.offsets.MonthBegin(1)).strftime('%Y-%m-%d')
+        else:
+            _post_start = event_date
+        pre = udata[udata.index < _post_start]
+        post = udata[udata.index >= _post_start]
         if len(pre) < 3 or len(post) < 2:
             continue
 
@@ -74,9 +83,9 @@ def compute_unit_level_recovery(panel, col, event_date, intervention_date, highe
             baseline_val = pre.mean()
             # Trough = baseline + worst deviation
             if higher_is_better:
-                worst_dev = post_df['deviation'].head(6).nsmallest(3).mean()
+                worst_dev = post_df['deviation'].head(6).nsmallest(1).mean()
             else:
-                worst_dev = post_df['deviation'].head(6).nlargest(3).mean()
+                worst_dev = post_df['deviation'].head(6).nlargest(1).mean()
             trough_val = baseline_val + worst_dev
 
             # Current = baseline + recent deviation
@@ -91,11 +100,11 @@ def compute_unit_level_recovery(panel, col, event_date, intervention_date, highe
                 int_dev = recent_dev
             intervention_val = baseline_val + int_dev
         else:
-            baseline_val = pre.tail(6).mean()
+            baseline_val = pre.mean()  # Use all available pre-event data
             if higher_is_better:
-                trough_val = post.head(6).nsmallest(3).mean()
+                trough_val = post.head(6).nsmallest(1).mean()
             else:
-                trough_val = post.head(6).nlargest(3).mean()
+                trough_val = post.head(6).nlargest(1).mean()
             current_val = post.tail(3).mean()
             post_int = udata[udata.index >= intervention_date]
             intervention_val = post_int.head(2).mean() if len(post_int) >= 2 else current_val
@@ -226,12 +235,23 @@ def main():
 
     panel = pd.read_csv(panel_path)
     panel['period_start'] = pd.to_datetime(panel['period_start'])
+    # Normalize column names — some pipelines produce admin_id, others unit_id
+    if 'unit_id' not in panel.columns and 'admin_id' in panel.columns:
+        panel['unit_id'] = panel['admin_id']
+    if 'unit_id' not in panel.columns:
+        panel['unit_id'] = panel.iloc[:, 0]
+    if 'admin_name' not in panel.columns and 'unit_name' in panel.columns:
+        panel['admin_name'] = panel['unit_name']
 
-    # Filter units if specified in config (e.g., Gaza only)
-    unit_filter = config.get('unit_filter', None)
+    # Apply unit filter from config (by ID or name)
+    unit_filter = config.get('unit_filter', config.get('boundaries', {}).get('unit_filter'))
     if unit_filter:
-        panel = panel[panel['unit_id'].isin(unit_filter)]
-        print(f"  Filtered to {panel['unit_id'].nunique()} units (config)")
+        mask = panel['unit_id'].isin(unit_filter)
+        for name_col in ['admin_name', 'unit_name', 'name']:
+            if name_col in panel.columns:
+                mask = mask | panel[name_col].isin(unit_filter)
+        panel = panel[mask]
+        print(f"  Filtered to {panel['unit_id'].nunique()} units (config filter)")
 
     print(f"  Panel: {panel.shape[0]} rows, {panel['unit_id'].nunique()} units")
 
