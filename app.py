@@ -286,7 +286,7 @@ st.markdown("""
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    mode = st.radio("Mode", ["📊 View Results", "⚙️ Setup & Run"],
+    mode = st.radio("Mode", ["📊 View Results", "⚙️ Setup & Run", "ℹ️ About"],
                     label_visibility="collapsed", key="main_mode")
     st.markdown("---")
 
@@ -423,7 +423,7 @@ def render_copilot_sidebar(config, figures_dir, code):
     undp_csv = Path("data/" + code + "/external/undp_projects.csv")
     if undp_csv.exists():
         udf = pd.read_csv(undp_csv)
-        ctx.append("UNDP programmes: " + str(len(udf)))
+        ctx.append("UNDP projects: " + str(len(udf)))
         if "total_budget" in udf.columns:
             ctx.append("Total budget: $" + "{:,.0f}".format(udf["total_budget"].sum()))
     context = chr(10).join(ctx)
@@ -470,7 +470,7 @@ def render_copilot_sidebar(config, figures_dir, code):
                                  for m in st.session_state.copilot_msgs[-6:]]
                     resp = client.chat.completions.create(
                         model="gpt-4o-mini", messages=messages,
-                        max_tokens=500, temperature=0.3)
+                        max_tokens=500, temperature=0.3, timeout=30)
                     reply = resp.choices[0].message.content
             except Exception as e:
                 reply = "Error: " + str(e)[:200]
@@ -531,7 +531,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
     """Indicative economic reactivation using nightlights-GDP elasticity.
     Henderson et al. (2012): elasticity ~0.3.
     Uses ONLY nightlights for GDP conversion (other indicators don't have GDP elasticity).
-    Ties estimates to the currently selected programme."""
+    Ties estimates to the currently selected project."""
     scorecard_csv = figures_dir / "scorecard_data.csv"
     undp_csv = Path(f"data/{code}/external/undp_projects.csv")
     if not scorecard_csv.exists() or not undp_csv.exists():
@@ -569,7 +569,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
     coverage = n_affected / max(n_total, 1)
 
     # Build per-programme estimates
-    # The selected programme's recovery is nl_undp (since programme)
+    # The selected project's recovery is nl_undp (since project)
     # Other programmes: use overall recovery as a rough proxy
     rows = []
     for _, pr in post.iterrows():
@@ -579,13 +579,13 @@ def estimate_economic_reactivation(config, figures_dir, code):
         title = str(pr.get('title', ''))[:55]
         pr_date = pr['start_date'].strftime('%Y-%m-%d') if pd.notna(pr['start_date']) else '-'
 
-        # Is this the currently selected programme?
+        # Is this the currently selected project?
         is_selected = (pr_date == str(intervention_dt.date()))
 
         # Use programme-specific recovery if selected, overall otherwise
         if is_selected and nl_undp > 0:
             prog_recovery = nl_undp
-            label = "Since programme"
+            label = "Since project"
         elif nl_overall > 0:
             prog_recovery = nl_overall
             label = "Overall"
@@ -599,7 +599,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
         roi = (indicative_value - budget) / budget if budget > 0 else 0
 
         rows.append({
-            'Programme': title,
+            'Project': title,
             'Start': pr_date,
             'Budget (USD)': budget,
             'NL Recovery': f"{prog_recovery:.0f}%",
@@ -614,7 +614,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
 
     df = pd.DataFrame(rows).sort_values('_selected', ascending=False)
 
-    # Summary for selected programme (or best available)
+    # Summary for selected project (or best available)
     sel = [r for r in rows if r['_selected']]
     if sel:
         s = sel[0]
@@ -732,7 +732,7 @@ def render_scorecard():
         <div class="sc-sub">Event: {event_date} &nbsp;·&nbsp; Intervention: {intervention}</div>
         <div class="sc-legend">
             <div class="sc-legend-item"><div class="sc-legend-dot" style="background:#3fb950;"></div>Overall Recovery</div>
-            <div class="sc-legend-item"><div class="sc-legend-dot" style="background:#1f6feb;"></div>Since Selected Programme</div>
+            <div class="sc-legend-item"><div class="sc-legend-dot" style="background:#1f6feb;"></div>Since Selected Project</div>
         </div>
         {rows_html}
     </div>
@@ -749,7 +749,7 @@ def render_scorecard():
 # VIEW RESULTS
 # ═════════════════════════════════════════════════════════════════════════════
 if mode == "📊 View Results":
-    # SCORECARD (bars only — note rendered after UNDP picker)
+        # SCORECARD (bars only — note rendered after UNDP picker)
     has_scorecard = render_scorecard()
     if not has_scorecard:
         st.info(f"Run the pipeline first: `make run COUNTRY={selected}`")
@@ -778,7 +778,7 @@ if mode == "📊 View Results":
                             current_idx = i
                             break
                     sel_prog = st.selectbox(
-                        "UNDP Programme",
+                        "UNDP Project",
                         range(len(options)),
                         format_func=lambda i: options[i]['label'],
                         index=current_idx,
@@ -801,7 +801,7 @@ if mode == "📊 View Results":
             <div style="font-size:.88rem;font-weight:600;color:#e6edf3;margin-bottom:.6rem;">Methodology & Assumptions</div>
             <div style="font-size:.78rem;color:#c9d1d9;line-height:1.7;">
                 <p style="margin:0 0 .5rem 0;"><b>What this shows:</b> Observed changes in satellite indicators before and after disaster events and UNDP interventions. These are correlations, not causal estimates. UNDP is one of many actors on the ground, and observed recovery reflects the combined contributions of multiple organisations, government efforts, and local communities.</p>
-                <p style="margin:0 0 .5rem 0;"><b>How recovery is calculated:</b> &ldquo;Overall Recovery&rdquo; measures how much of the initial decline (from the pre-event average to the single worst post-event month) has been regained. &ldquo;Since Selected Programme&rdquo; measures recovery after the intervention start date. Both are capped at 100%, and &ldquo;Since Programme&rdquo; never exceeds &ldquo;Overall&rdquo;. Only units with &gt;10% decline are included; others are &ldquo;Stable&rdquo;. For nightlights, the baseline is the simple mean of all pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied. For events occurring in the last week of a month, the first full post-event month is used as the starting point.</p>
+                <p style="margin:0 0 .5rem 0;"><b>How recovery is calculated:</b> &ldquo;Overall Recovery&rdquo; measures how much of the initial decline (from the pre-event average to the single worst post-event month) has been regained. &ldquo;Since Selected Project&rdquo; measures recovery after the intervention start date. Both are capped at 100%, and &ldquo;Since Programme&rdquo; never exceeds &ldquo;Overall&rdquo;. Only units with &gt;10% decline are included; others are &ldquo;Stable&rdquo;. For nightlights, the baseline is the simple mean of all pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied. For events occurring in the last week of a month, the first full post-event month is used as the starting point.</p>
                 <p style="margin:0 0 .5rem 0;"><b>GDP conversion:</b> Nightlight recovery converted to GDP using Henderson, Storeygard &amp; Weil (2012) elasticity of 0.3 (global average). Economic values use World Bank GDP per capita (WDI 2023) and UN population estimates, applied proportionally to affected administrative units.</p>
                 <p style="margin:0 0 .5rem 0;"><b>Limitations:</b> (1) Budget = allocations, not disbursements. (2) Satellite data affected by cloud cover, snow, sensors. (3) Causal attribution requires econometric methods (e.g., Synthetic Controls, Difference-in-Differences) in the Impact Measurement tab.</p>
                 <p style="margin:0;"><b>Purpose:</b> Rapid monitoring and prioritisation tool. Not a substitute for rigorous impact evaluation.</p>
@@ -854,7 +854,7 @@ if mode == "📊 View Results":
                     elif not _post.dropna(subset=["total_budget"]).empty:
                         _sel_b = float(_post.dropna(subset=["total_budget"]).iloc[0]["total_budget"])
                 if _nl_un > 0:
-                    _rec = _nl_un; _rlbl = "since selected programme"
+                    _rec = _nl_un; _rlbl = "since selected project"
                 elif _nl_ov > 0:
                     _rec = _nl_ov; _rlbl = "overall"
                 else:
@@ -874,7 +874,7 @@ if mode == "📊 View Results":
                             return "${:,.0f}".format(v)
                         _cards = [
                             ("Pre-shock GDP", _fmt_big(_nat_gdp), str(_wb_year)),
-                            ("Programme Budget", _fmt_big(_sel_b), ""),
+                            ("Project Budget", _fmt_big(_sel_b), ""),
                             ("NL Recovery", "{:.0f}%".format(_rec), _rlbl),
                             ("Est. Reactivation", _fmt_big(_prog_react), ""),
                             ("Indicative ROI", "{:,.1f}:1".format(_roi), ""),
@@ -919,7 +919,7 @@ if mode == "📊 View Results":
                             + '</p>'
                             '<p style="margin:0 0 .6rem 0;">'
                             '<b>Step 4 - Programme attribution:</b> '
-                            + 'This programme represents '
+                            + 'This project represents '
                             + '<b>{:.1%}</b> of total post-event UNDP spending '.format(_bshare)
                             + '(${:,.0f} of ${:,.0f}). '.format(_sel_b, _tot_b)
                             + 'Attributing a proportional share yields '
@@ -933,7 +933,7 @@ if mode == "📊 View Results":
                         st.caption(
                             "Correlational estimate for rapid screening, not causal impact. "
                             "Recovery reflects all actors on the ground, not just UNDP. "
-                            "Programme share assumes proportional contribution (a simplification). "
+                            "Project share assumes proportional contribution (a simplification). "
                             "GDP data: " + _wb_src + " (" + str(_wb_year) + "). "
                             "Affected area GDP estimated as proportional share of national GDP "
                             "based on fraction of admin units affected. "
@@ -941,7 +941,7 @@ if mode == "📊 View Results":
                         )
                     elif _has_nl:
                         st.metric("NL Recovery", "{:.0f}%".format(_rec))
-                        st.markdown("Recovery detected but no programme budget available for ROI.")
+                        st.markdown("Recovery detected but no project budget available for ROI.")
                     else:
                         st.info("Nightlights show no measurable recovery yet. Estimates appear when recovery is detected.")
                     if "total_budget" in _post.columns and len(_post.dropna(subset=["total_budget"])) > 0:
@@ -1155,22 +1155,21 @@ elif mode == "⚙️ Setup & Run":
                 ex = yaml.safe_load(_f)
             d_etype = ex.get('events',{}).get('disaster_type', ref['etype'])
             d_edate = ex.get('events',{}).get('disaster_date', ref['edate'])
-            d_idate = ex.get('events',{}).get('intervention_start', ref['edate'])
+            # intervention_start auto-set to event date
             d_start = ex.get('study_period_start', '2022-01-01')
             d_end = ex.get('study_period_end', '2025-12-31')
             d_admin = ex.get('boundaries',{}).get('admin_level', ref['admin'])
             st.caption(f"Editing `config/{cc}.yaml`")
         else:
-            d_etype, d_edate, d_idate = ref['etype'], ref['edate'], ref['edate']
+            d_etype, d_edate = ref['etype'], ref['edate']
             d_start = str(date(max(int(ref['edate'][:4])-1, 2000), 1, 1))
             d_end = '2025-12-31'
             d_admin = ref['admin']
 
         etypes = ["earthquake","conflict","flood","cyclone","drought"]
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         with c1: etype = st.selectbox("Event type", etypes, index=etypes.index(d_etype), key="cf_et")
         with c2: edate = st.date_input("Event date", date.fromisoformat(d_edate), key="cf_ed")
-        with c3: idate = st.date_input("Intervention start", date.fromisoformat(d_idate), key="cf_id")
 
         c1, c2, c3 = st.columns(3)
         with c1: sstart = st.date_input("Study start", date.fromisoformat(d_start), key="cf_ss")
@@ -1186,7 +1185,7 @@ elif mode == "⚙️ Setup & Run":
                 'events': {
                     'disaster_type': etype,
                     'disaster_date': edate.isoformat(),
-                    'intervention_start': idate.isoformat(),
+                    'intervention_start': edate.isoformat(),
                 },
                 'boundaries': {
                     'file_path': f"data/{cc}/boundaries/{cc}_admin{admin_level}.geojson",
@@ -1211,11 +1210,37 @@ elif mode == "⚙️ Setup & Run":
 
     # CREDENTIALS
     st.markdown("---")
-    with st.expander("🔑 Credentials (ACLED & GEE)", expanded=False):
-        c1, c2 = st.columns([45, 55])
+    with st.expander("🔑 Credentials", expanded=False):
+        st.caption("API keys are saved locally in .env and never shared.")
+        c1, c2 = st.columns(2)
         with c1: acled_email = st.text_input("ACLED Email", value=os.getenv("ACLED_EMAIL",""), key="acled_em")
         with c2: acled_key = st.text_input("ACLED Key", value=os.getenv("ACLED_KEY",""), type="password", key="acled_k")
-        st.caption("GEE: run `earthengine authenticate` in terminal once.")
+        c3, c4 = st.columns(2)
+        with c3: gee_project = st.text_input("GEE Project ID", value=os.getenv("GEE_PROJECT",""), key="gee_proj")
+        with c4: openai_key = st.text_input("AI Co-pilot Key", value=os.getenv("OPENAI_API_KEY",""), type="password", key="openai_k")
+        if st.button("Save Credentials", key="save_creds"):
+            env_path = Path(".env")
+            lines = env_path.read_text().splitlines() if env_path.exists() else []
+            updates = {}
+            if acled_email: updates["ACLED_EMAIL"] = acled_email
+            if acled_key: updates["ACLED_KEY"] = acled_key
+            if gee_project: updates["GEE_PROJECT"] = gee_project
+            if openai_key: updates["OPENAI_API_KEY"] = openai_key
+            new_lines = []
+            seen = set()
+            for ln in lines:
+                k = ln.split("=", 1)[0] if "=" in ln else ""
+                if k in updates:
+                    new_lines.append(k + "=" + updates[k])
+                    seen.add(k)
+                else:
+                    new_lines.append(ln)
+            for k, v in updates.items():
+                if k not in seen:
+                    new_lines.append(k + "=" + v)
+            env_path.write_text(chr(10).join(new_lines) + chr(10))
+            os.environ.update(updates)
+            st.success("Credentials saved to .env")
 
     # RUN PIPELINE
     run_country = setup_country_code or selected
@@ -1230,6 +1255,8 @@ elif mode == "⚙️ Setup & Run":
         if acled_key:
             env['ACLED_KEY'] = acled_key
             env['ACLED_PASSWORD'] = acled_key
+        _gee = os.getenv('GEE_PROJECT', '')
+        if _gee: env['GEE_PROJECT'] = _gee
         with st.status(desc + "...", expanded=True) as s:
             try:
                 import time as _t
@@ -1279,6 +1306,146 @@ elif mode == "⚙️ Setup & Run":
     with st.expander("📝 Current Configuration"):
         st.code(yaml.dump(config, default_flow_style=False, sort_keys=False), language="yaml")
 
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ABOUT
+# ════════════════════════════════════════════════════════════════════════════
+elif mode.startswith("\u2139"):
+    st.markdown('<div class="section-title">About This Dashboard</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+### UNDP Early Recovery Impact Dashboard
+
+A satellite-based monitoring and rapid screening tool developed by **AImpact Lab** for UNDP Crisis Bureau / C3RT. 
+This dashboard tracks post-crisis recovery across multiple indicators to support evidence-based prioritisation 
+and resource allocation for early recovery interventions.
+
+**GitHub Repository:** [github.com/hgrueso/undp-impact-evaluation](https://github.com/hgrueso/undp-impact-evaluation)
+
+---
+
+### Data Sources
+
+| Source | Indicator | Coverage | Use |
+|--------|-----------|----------|-----|
+| **NASA VIIRS** | Nighttime Lights | Monthly, 500m, 2012-present | Economic activity proxy |
+| **ESA Sentinel-1** | Radar Backscatter (VV) | 12-day, 10m, 2014-present | Surface change, debris |
+| **NASA MODIS** | Vegetation Index (NDVI) | 16-day, 250m, 2000-present | Agricultural health |
+| **ACLED** | Conflict Events & Fatalities | Daily, geocoded | Security context |
+| **World Bank WDI** | GDP, GDP/capita, Population | Annual | Economic baseline |
+| **UNDP API** | Project budgets & timelines | Per project | Intervention tracking |
+| **Google Trends** | Search interest indices | Weekly/monthly | Population sentiment |
+| **WFP** | Food Prices | Monthly, market-level | Food security monitoring |
+| **CHIRPS** | Rainfall | Monthly, 5km | Environmental control |
+
+---
+
+### Pipeline Architecture
+
+The system follows a modular pipeline orchestrated via a Makefile:
+
+1. **Configuration** — Each country is defined by a YAML file specifying event dates, boundaries, and parameters
+2. **Data Download** — Satellite data via Google Earth Engine, conflict via ACLED API, economic via World Bank API
+3. **Panel Construction** — All sources merged into an admin-unit x month panel dataset
+4. **Recovery Scorecard** — Unit-level recovery calculation with configurable thresholds
+5. **Visualization** — Time series, choropleth maps, and spatial comparisons
+6. **Economic Estimation** — Nightlight-GDP conversion using Henderson et al. (2012) elasticity
+
+Adding a new country takes approximately 30-60 minutes end-to-end.
+
+---
+
+### Recovery Scorecard Methodology
+
+For each indicator and administrative unit:
+
+- **Baseline:** Mean value across all available pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied.
+- **Trough:** The single worst post-event month (captures rapid-onset shocks).
+- **Affected units:** Only units with >10% decline from baseline are scored. Others are classified as "Stable."
+- **Overall Recovery:** (Current - Trough) / (Baseline - Trough) x 100, capped at 100%.
+- **Since Selected Project:** Recovery measured from the selected UNDP project start date.
+- **Late-month events:** If the disaster occurs after the 21st of the month, the event month is treated as pre-event (monthly composites dilute within-month shocks).
+
+The "Since Project" metric can never exceed "Overall" recovery (logical consistency constraint).
+
+---
+
+### Economic Reactivation Model
+
+Converts nightlight recovery to estimated USD values in 4 steps:
+
+1. **Nightlight recovery** — Observed from the scorecard
+2. **Pre-shock GDP** — National GDP from World Bank WDI for the year before the event
+3. **Affected area GDP** — National GDP x share of affected admin units
+4. **GDP reactivation** — Affected GDP x NL recovery x Henderson elasticity (0.3)
+
+The Henderson, Storeygard & Weil (2012) elasticity of 0.3 means 10% nightlight recovery corresponds to approximately 3% GDP reactivation. This is a global average; local values may differ.
+
+Project-specific ROI is calculated by attributing a proportional share of total reactivation based on the project's budget share of total post-event UNDP spending.
+
+**Key limitations:**
+- Correlational estimate, not causal impact
+- UNDP is one of many actors on the ground
+- Budget figures are allocations, not disbursements
+- GDP proportionally distributed across admin units (simplification)
+
+---
+
+### AI Co-pilot
+
+The integrated AI assistant (powered by OpenAI GPT-4o-mini) helps policy makers interpret recovery data. 
+It has full context of the selected country's scorecard, project data, and recovery metrics. 
+The co-pilot is pre-prompted to always emphasise correlation over causation and to recommend 
+econometric validation where appropriate.
+
+---
+
+### Causal Impact Analysis
+
+For specific cases where geocoded UNDP project locations are available (currently Myanmar and Gaza), 
+the pipeline includes causal impact estimates using formal econometric methods:
+
+- **Difference-in-Differences (DiD)** — Compares UNDP-treated vs control areas before and after intervention
+- **Two-Way Fixed Effects** — Controls for time-invariant unit characteristics and common time shocks
+- **Event Study Design** — Tests parallel pre-trends and visualises dynamic treatment effects
+- **Synthetic Control** — Constructs counterfactual for areas without suitable within-country controls
+- **Placebo Tests** — Validates results by assigning artificial treatment dates
+- **Dose-Response Analysis** — Examines whether effects vary with proximity to intervention sites
+
+These methods provide the econometric rigour needed for causal attribution, complementing the rapid 
+monitoring provided by the scorecard. Results for Myanmar and Gaza are available in the Impact Measurement tab.
+
+---
+
+### Deployment
+
+The dashboard can be deployed on any server with Python 3.10+:
+```
+git clone https://github.com/hgrueso/undp-impact-evaluation.git
+cd undp-impact-evaluation
+pip install -r requirements.txt
+# Set credentials in .env
+streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+```
+
+For UNDP Azure deployment, the app can be containerised with Docker or deployed directly on an Azure App Service.
+
+---
+
+### Contact
+
+**AImpact Lab** — Tech-enabled impact evaluation consultancy specialising in econometrics, 
+machine learning, causal inference, and satellite remote sensing.
+
+- Website: [www.aimpactlab.com](https://www.aimpactlab.com)
+- Email: [info@aimpactlab.com](mailto:info@aimpactlab.com)
+
+**Hernando Grueso, PhD** — Lead Data Scientist & Founder, AImpact Lab 
+([hernando@aimpactlab.com](mailto:hernando@aimpactlab.com))
+
+For questions about this dashboard or the underlying methodology, contact AImpact Lab or the C3RT team at UNDP Crisis Bureau.
+""")
 
 # ─── FOOTER ──────────────────────────────────────────────────────────────────
 st.markdown('<div class="footer">UNDP Early Recovery Impact · AImpact Lab · VIIRS · Sentinel-1 · MODIS · CHIRPS · ACLED</div>', unsafe_allow_html=True)

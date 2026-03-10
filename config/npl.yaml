@@ -1,0 +1,24 @@
+country_name: Nepal
+country_code: NPL
+study_period_start: '2024-01-01'
+study_period_end: '2026-02-28'
+events:
+  disaster_type: flood
+  disaster_date: '2025-10-05'
+  intervention_start: '2025-12-30'
+boundaries:
+  file_path: data/npl/boundaries/npl_admin3.geojson
+  id_column: shapeID
+  name_column: shapeName
+  admin_level: 3
+acled_country_name: Nepal
+wfp_commodity: Rice
+google_trends_keywords:
+  food: food
+  water: water
+  shelter: shelter
+  medicine: medicine
+  aid: aid
+  reconstruction: reconstruction
+  refugee: refugee
+  flood: flood

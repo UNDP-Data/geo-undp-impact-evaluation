@@ -5,7 +5,7 @@ study_period_end: '2025-12-31'
 events:
   disaster_type: conflict
   disaster_date: '2023-04-15'
-  intervention_start: '2024-08-01'
+  intervention_start: '2024-01-01'
 boundaries:
   file_path: data/sdn/boundaries/sdn_admin2.geojson
   id_column: shapeID
