@@ -415,10 +415,11 @@ def render_copilot_sidebar(config, figures_dir, code):
     sc_path = figures_dir / "scorecard_data.csv"
     if sc_path.exists():
         sc = pd.read_csv(sc_path)
+        ctx.append("SCORECARD SUMMARY:")
         for _, r in sc.iterrows():
             nm = r.get("short_name", r.get("indicator", ""))
             ctx.append("  " + str(nm) + ": overall " + str(round(r.get("overall_recovery_pct", 0))) + "%, "
-                       + "programme " + str(round(r.get("undp_recovery_pct", 0))) + "%, "
+                       + "since project " + str(round(r.get("undp_recovery_pct", 0))) + "%, "
                        + str(int(r.get("n_affected_units", 0))) + "/" + str(int(r.get("n_total_units", 0))) + " units")
     undp_csv = Path("data/" + code + "/external/undp_projects.csv")
     if undp_csv.exists():
@@ -426,32 +427,70 @@ def render_copilot_sidebar(config, figures_dir, code):
         ctx.append("UNDP projects: " + str(len(udf)))
         if "total_budget" in udf.columns:
             ctx.append("Total budget: $" + "{:,.0f}".format(udf["total_budget"].sum()))
+    # Load monthly time series from panel data for richer analysis
+    panel_paths = [
+        Path("outputs/" + code + "/panel_data.csv"),
+        Path("data/" + code + "/gee_panel_" + code + "_centroid.csv"),
+    ]
+    for pp in panel_paths:
+        if pp.exists():
+            try:
+                pdf = pd.read_csv(pp)
+                pdf["_dt"] = pd.to_datetime(pdf.get("period_start", pdf.get("date", "")), errors="coerce")
+                pdf = pdf.dropna(subset=["_dt"])
+                ctx.append(chr(10) + "MONTHLY TIME SERIES (national averages):")
+                indicators = [c for c in ["nightlights", "ndvi", "vv", "vh"] if c in pdf.columns]
+                monthly = pdf.groupby(pdf["_dt"].dt.to_period("M"))[indicators].mean()
+                event_dt = str(config["events"].get("disaster_date", ""))[:7]
+                intv_dt = str(config["events"].get("intervention_start", ""))[:7]
+                for period, row in monthly.iterrows():
+                    marker = ""
+                    if str(period) == event_dt: marker = " [EVENT]"
+                    elif str(period) == intv_dt: marker = " [INTERVENTION]"
+                    vals = ", ".join(str(c) + "=" + "{:.2f}".format(row[c]) for c in indicators if pd.notna(row[c]))
+                    ctx.append("  " + str(period) + ": " + vals + marker)
+                ctx.append(chr(10) + "Use this time series to identify trends, breakpoints, and anomalies.")
+                ctx.append("The [EVENT] marker shows the disaster date, [INTERVENTION] shows when the UNDP project started.")
+            except Exception:
+                pass
+            break
     context = chr(10).join(ctx)
     country_name = config.get("country_name", "Unknown")
 
     sys_prompt = (
-        "You are an expert development economist in a UNDP Early Recovery dashboard. "
-        "Help policy makers interpret satellite-based recovery monitoring data." + chr(10) + chr(10)
+        "You are a senior development economist (PhD, MIT-trained) embedded in a UNDP Early Recovery dashboard. "
+        "You help policy makers interpret satellite-based recovery monitoring data with precision and clarity. "
+        "You give direct, actionable answers grounded in the data. You avoid jargon but maintain analytical rigour. "
+        "When you cite numbers, you explain what they mean in practical terms for affected populations." + chr(10) + chr(10)
         + "DATA for " + country_name + ":" + chr(10) + context + chr(10) + chr(10)
         + "RULES:" + chr(10)
-        + "1. All indicators show CORRELATIONS, not causal impact." + chr(10)
+        + "1. All indicators show CORRELATIONS, not causal impact. Be explicit about this." + chr(10)
         + "2. UNDP is one of many actors - never imply sole attribution." + chr(10)
         + "3. Nightlight-GDP elasticity of 0.3 (Henderson et al. 2012) is a global average." + chr(10)
-        + "4. 'Since Programme' = what happened AFTER intervention date, not BECAUSE of it." + chr(10)
-        + "5. Be concise, actionable, honest about limitations." + chr(10)
-        + "6. Recommend next steps when appropriate." + chr(10)
-        + "7. Keep responses under 200 words."
+        + "4. 'Since Project' = what happened AFTER intervention date, not BECAUSE of it." + chr(10)
+        + "5. Be concise and actionable. Recommend specific next steps when appropriate." + chr(10)
+        + "6. Keep responses under 150 words." + chr(10)
+        + "7. You cannot see images, but you HAVE the full monthly time series data. When asked about trends, maps, or charts, analyze the time series numbers directly. Identify breakpoints, trends, and anomalies." + chr(10)
+        + "8. Use plain language a policy maker would understand. Avoid academic hedging."
     )
 
     if "copilot_msgs" not in st.session_state:
         st.session_state.copilot_msgs = []
+
+    # Display last few messages
     for msg in st.session_state.copilot_msgs[-6:]:
         role_label = "You" if msg["role"] == "user" else "Co-pilot"
         st.markdown("**" + role_label + ":** " + msg["content"][:500])
-    query = st.text_input("Question", key="copilot_input", label_visibility="collapsed", placeholder="Type your question here...")
-    if query:
+
+    # Use a form to prevent rerun on every keystroke
+    with st.form("copilot_form", clear_on_submit=True):
+        query = st.text_input("Question", key="copilot_input", label_visibility="collapsed",
+                              placeholder="Ask about this country's recovery data...")
+        submitted = st.form_submit_button("Send")
+
+    if submitted and query:
         st.session_state.copilot_msgs.append({"role": "user", "content": query})
-        with st.spinner("..."):
+        with st.spinner("Thinking..."):
             try:
                 from openai import OpenAI
                 api_key = os.getenv("OPENAI_API_KEY")
@@ -462,7 +501,7 @@ def render_copilot_sidebar(config, figures_dir, code):
                             if ln.startswith("OPENAI_API_KEY="):
                                 api_key = ln.split("=", 1)[1].strip().strip(chr(34)).strip(chr(39))
                 if not api_key:
-                    reply = "API key not found. Add OPENAI_API_KEY=sk-... to .env and restart."
+                    reply = "API key not found. Add it in Setup > Credentials."
                 else:
                     client = OpenAI(api_key=api_key)
                     messages = [{"role": "system", "content": sys_prompt}]
@@ -476,8 +515,9 @@ def render_copilot_sidebar(config, figures_dir, code):
                 reply = "Error: " + str(e)[:200]
         st.session_state.copilot_msgs.append({"role": "assistant", "content": reply})
         st.rerun()
+
     if st.session_state.copilot_msgs:
-        if st.button("Clear", key="clr_copilot"):
+        if st.button("Clear chat", key="clr_copilot"):
             st.session_state.copilot_msgs = []
             st.rerun()
 
