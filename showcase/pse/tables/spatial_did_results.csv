@@ -1,0 +1,11 @@
+outcome,treatment_var,did_coef,did_se,did_pval,n_obs,r2,model,intensity_based,interpretation
+vh,treated_post,-5.325271991633597e-15,2.956401998266477e-16,1.5494500396048126e-72,180,0.9459572437505835,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x12e3442f0>,False,
+vh,intensity_post,-5.325271991633597e-15,2.956401998266477e-16,1.5494500396048126e-72,180,0.9459572437505835,,,Effect per additional debris site
+vv,treated_post,-2.732993156718634e-15,2.753300913246339e-16,3.2009209072534115e-23,180,0.8325869367169036,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x12e5dcb90>,False,
+vv,intensity_post,-2.732993156718634e-15,2.753300913246339e-16,3.2009209072534115e-23,180,0.8325869367169036,,,Effect per additional debris site
+ndvi,treated_post,4.156039847238591e-16,2.1026789224979932e-17,5.906740841924929e-87,180,0.9260252393964817,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x148300050>,False,
+ndvi,intensity_post,4.156039847238591e-16,2.1026789224979932e-17,5.906740841924929e-87,180,0.9260252393964817,,,Effect per additional debris site
+nightlights,treated_post,3.1576590236871597e-14,3.2549643018032145e-15,2.9839474982643565e-22,180,0.8960629490465016,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x12e5ce580>,False,
+nightlights,intensity_post,3.1576590236871597e-14,3.2549643018032145e-15,2.9839474982643565e-22,180,0.8960629490465016,,,Effect per additional debris site
+rvi,treated_post,1.03922384788279e-15,1.400764238023563e-17,0.0,180,0.6828957442118609,<statsmodels.regression.linear_model.RegressionResultsWrapper object at 0x14864c450>,False,
+rvi,intensity_post,1.03922384788279e-15,1.400764238023563e-17,0.0,180,0.6828957442118609,,,Effect per additional debris site
