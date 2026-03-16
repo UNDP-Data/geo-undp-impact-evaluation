@@ -5,7 +5,7 @@ study_period_end: '2025-12-31'
 events:
   disaster_date: '2023-10-07'
   disaster_type: conflict
-  intervention_start: '2024-10-01'
+  intervention_start: '2024-01-01'
 disaster_label: Conflict
 raster_maps:
   pre_month: 2023-09

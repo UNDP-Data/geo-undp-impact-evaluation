@@ -140,7 +140,7 @@ NAMES = {'nightlights':'Energy & Economic Activity','ndvi':'Vegetation Health','
 RASTER_IND = ['viirs','ndvi','ndbi','bsi','vv','evi','savi','nbr','swir','mndwi']
 RASTER_NAMES = {'viirs':'Energy & Nightlights','ndvi':'Vegetation Health','ndbi':'Built-Up Areas','bsi':'Bare Soil & Debris','evi':'Enhanced Vegetation','savi':'Soil-Adjusted Vegetation','nbr':'Burn Ratio','vv':'Surface Roughness (Radar)','swir':'Short-Wave Infrared','mndwi':'Water Coverage'}
 
-METHODOLOGY_NOTE = """<b>Methodological note.</b> Scores are calculated only for administrative units that experienced a significant shock, defined as a decline greater than 10% relative to the pre-event baseline. Indicators below this threshold are classified as <em>Stable</em> and are excluded from recovery scoring. To ensure comparability over time, Vegetation and Nightlights indicators are adjusted on a year-over-year basis to remove natural seasonal variation (e.g., harvest cycles, snow cover, or holiday effects). <b>Overall Recovery</b> measures the share of the initial decline that has been regained since the lowest observed point of the crisis (the trough), capped at 100%. <b>Since Intervention</b> captures the recovery achieved after the intervention start date, expressed as a percentage of the total disaster impact and likewise capped at 100%. These metrics describe observed temporal dynamics to support rapid prioritisation and resource allocation; they reflect recovery trends but do not imply direct causal attribution to any single organisation or intervention.<br><br><b>Disclaimer.</b> The accuracy of these results depends on the quality and resolution of the underlying satellite data. In some contexts, indicators such as nighttime lights may be affected by seasonal patterns, cloud cover, snow reflectance, or sensor calibration changes that are not fully captured by the year-over-year adjustment. This dashboard presents <em>correlations</em> between the timing of an event, the start of early recovery interventions, and changes in satellite-derived indicators; it does not constitute evidence of causal impact. In most contexts, UNDP is not the only actor on the ground, and observed recovery trends reflect the combined contributions of multiple organisations and local actors. Isolating UNDP's specific contribution requires econometric approaches (e.g., Difference-in-Differences, Synthetic Control) available in the Impact Measurement tab, which support attribution to the extent possible given data constraints."""
+METHODOLOGY_NOTE = """<b>Methodological note.</b> Scores are calculated only for administrative units that experienced a significant shock, defined as a decline greater than 10% relative to the pre-event baseline. Indicators below this threshold are classified as <em>Stable</em> and are excluded from recovery scoring. To ensure comparability over time, Vegetation and Nightlights indicators are adjusted on a year-over-year basis to remove natural seasonal variation (e.g., harvest cycles, snow cover, or holiday effects). <b>Targeted Recovery</b> measures the share of the initial decline that has been regained since the lowest observed point of the crisis (the trough), capped at 100%. <b>Since Intervention</b> captures the recovery achieved after the intervention start date, expressed as a percentage of the total disaster impact and likewise capped at 100%. These metrics describe observed temporal dynamics to support rapid prioritisation and resource allocation; they reflect recovery trends but do not imply direct causal attribution to any single organisation or intervention.<br><br><b>Disclaimer.</b> The accuracy of these results depends on the quality and resolution of the underlying satellite data. In some contexts, indicators such as nighttime lights may be affected by seasonal patterns, cloud cover, snow reflectance, or sensor calibration changes that are not fully captured by the year-over-year adjustment. This dashboard presents <em>correlations</em> between the timing of an event, the start of early recovery interventions, and changes in satellite-derived indicators; it does not constitute evidence of causal impact. In most contexts, UNDP is not the only actor on the ground, and observed recovery trends reflect the combined contributions of multiple organisations and local actors. Isolating UNDP's specific contribution requires econometric approaches (e.g., Difference-in-Differences, Synthetic Control) available in the Impact Measurement tab, which support attribution to the extent possible given data constraints."""
 
 QUICK_REF = {
     # Current UNDP priority countries
@@ -286,7 +286,14 @@ st.markdown("""
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    mode = st.radio("Mode", ["📊 View Results", "⚙️ Setup & Run", "ℹ️ About"],
+    # Admin toggle
+    is_admin = st.toggle("Admin Mode", value=False, key="admin_toggle")
+
+    else:
+        mode = st.radio("Mode", ["📊 View Results", "ℹ️ About"],
+                    is_admin = st.toggle("Admin Mode", value=False, key="admin_toggle")
+    if is_admin:
+        mode = st.radio("Mode", ["📊 View Results", "⚙️ Setup & Run", "ℹ️ About"],
                     label_visibility="collapsed", key="main_mode")
     st.markdown("---")
 
@@ -454,6 +461,31 @@ def render_copilot_sidebar(config, figures_dir, code):
             except Exception:
                 pass
             break
+    # Add cross-country comparison data
+    ctx.append(chr(10) + "CROSS-COUNTRY COMPARISON (all available countries):")
+    import glob as _glob
+    for _sc_file in sorted(_glob.glob("outputs/*/figures/scorecard_data.csv")):
+        try:
+            _cc_code = _sc_file.split("/")[1]
+            _cc_sc = pd.read_csv(_sc_file)
+            _cc_cfg_path = "config/" + _cc_code + ".yaml"
+            if not Path(_cc_cfg_path).exists():
+                for _cf in _glob.glob("config/*.yaml"):
+                    _cfg_tmp = yaml.safe_load(open(_cf))
+                    if _cfg_tmp.get("country_code", "").lower() == _cc_code:
+                        _cc_cfg_path = _cf
+                        break
+            _cc_name = _cc_code.upper()
+            if Path(_cc_cfg_path).exists():
+                _cc_name = yaml.safe_load(open(_cc_cfg_path)).get("country_name", _cc_code)
+            _nl = _cc_sc[_cc_sc["indicator"].str.contains("nightlight", case=False, na=False)]
+            if not _nl.empty:
+                _ov = round(_nl.iloc[0].get("overall_recovery_pct", 0))
+                _un = round(_nl.iloc[0].get("undp_recovery_pct", 0))
+                ctx.append("  " + _cc_name + ": NL targeted=" + str(_ov) + "%, since project=" + str(_un) + "%")
+        except Exception:
+            pass
+    ctx.append("Use this to compare recovery across countries when asked.")
     context = chr(10).join(ctx)
     country_name = config.get("country_name", "Unknown")
 
@@ -469,7 +501,7 @@ def render_copilot_sidebar(config, figures_dir, code):
         + "3. Nightlight-GDP elasticity of 0.3 (Henderson et al. 2012) is a global average." + chr(10)
         + "4. 'Since Project' = what happened AFTER intervention date, not BECAUSE of it." + chr(10)
         + "5. Be concise and actionable. Recommend specific next steps when appropriate." + chr(10)
-        + "6. Keep responses under 150 words." + chr(10)
+        + "6. Give complete, thorough answers. Never cut off mid-sentence." + chr(10)
         + "7. You cannot see images, but you HAVE the full monthly time series data. When asked about trends, maps, or charts, analyze the time series numbers directly. Identify breakpoints, trends, and anomalies." + chr(10)
         + "8. Use plain language a policy maker would understand. Avoid academic hedging."
     )
@@ -480,7 +512,7 @@ def render_copilot_sidebar(config, figures_dir, code):
     # Display last few messages
     for msg in st.session_state.copilot_msgs[-6:]:
         role_label = "You" if msg["role"] == "user" else "Co-pilot"
-        st.markdown("**" + role_label + ":** " + msg["content"][:500])
+        st.markdown("**" + role_label + ":** " + msg["content"])
 
     # Use a form to prevent rerun on every keystroke
     with st.form("copilot_form", clear_on_submit=True):
@@ -509,7 +541,7 @@ def render_copilot_sidebar(config, figures_dir, code):
                                  for m in st.session_state.copilot_msgs[-6:]]
                     resp = client.chat.completions.create(
                         model="gpt-4o-mini", messages=messages,
-                        max_tokens=500, temperature=0.3, timeout=30)
+                        max_tokens=2000, temperature=0.3, timeout=60)
                     reply = resp.choices[0].message.content
             except Exception as e:
                 reply = "Error: " + str(e)[:200]
@@ -610,7 +642,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
 
     # Build per-programme estimates
     # The selected project's recovery is nl_undp (since project)
-    # Other programmes: use overall recovery as a rough proxy
+    # Other programmes: use targeted recovery as a rough proxy
     rows = []
     for _, pr in post.iterrows():
         budget = float(pr['total_budget'])
@@ -628,7 +660,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
             label = "Since project"
         elif nl_overall > 0:
             prog_recovery = nl_overall
-            label = "Overall"
+            label = "Targeted"
         else:
             prog_recovery = 0
             label = "No recovery"
@@ -771,7 +803,7 @@ def render_scorecard():
         <div class="sc-title">Recovery Scorecard</div>
         <div class="sc-sub">Event: {event_date} &nbsp;·&nbsp; Intervention: {intervention}</div>
         <div class="sc-legend">
-            <div class="sc-legend-item"><div class="sc-legend-dot" style="background:#3fb950;"></div>Overall Recovery</div>
+            <div class="sc-legend-item"><div class="sc-legend-dot" style="background:#3fb950;"></div>Targeted Recovery</div>
             <div class="sc-legend-item"><div class="sc-legend-dot" style="background:#1f6feb;"></div>Since Selected Project</div>
         </div>
         {rows_html}
@@ -790,6 +822,39 @@ def render_scorecard():
 # ═════════════════════════════════════════════════════════════════════════════
 if mode == "📊 View Results":
         # SCORECARD (bars only — note rendered after UNDP picker)
+    # UNDP PROJECT SELECTOR
+    _undp_p = Path("data/" + code + "/external/undp_projects.csv")
+    if _undp_p.exists():
+        try:
+            _udf = pd.read_csv(_undp_p)
+            if len(_udf) > 0 and 'start_date' in _udf.columns:
+                _udf['start_date'] = pd.to_datetime(_udf['start_date'], errors='coerce')
+                _post_u = _udf[_udf['start_date'] >= pd.Timestamp(event_date)].dropna(subset=['start_date']).sort_values('start_date')
+                if len(_post_u) > 0:
+                    _opts = []
+                    for _, _r in _post_u.iterrows():
+                        _d = _r['start_date'].strftime('%Y-%m-%d')
+                        _t = str(_r.get('title',''))[:60]
+                        _b = "${:,.0f}".format(_r['total_budget']) if pd.notna(_r.get('total_budget')) else ""
+                        _opts.append({"label": _d + " - " + _t + " " + _b, "date": _d})
+                    _cur = config['events'].get('intervention_start', event_date)
+                    _cidx = 0
+                    for _i, _o in enumerate(_opts):
+                        if _o['date'] == _cur: _cidx = _i; break
+                    st.markdown('<div class="section-title">UNDP Project</div>', unsafe_allow_html=True)
+                    _pick = st.selectbox("Select project", range(len(_opts)),
+                        format_func=lambda i: _opts[i]['label'], index=_cidx, key="undp_proj_top")
+                    _nint = _opts[_pick]['date']
+                    if _nint != _cur:
+                        config['events']['intervention_start'] = _nint
+                        with open("config/" + selected + ".yaml", 'w') as _fw:
+                            yaml.dump(config, _fw, default_flow_style=False, sort_keys=False)
+                        subprocess.run("python pipeline/recovery_scorecard.py --config config/" + selected + ".yaml",
+                            shell=True, capture_output=True, timeout=60)
+                        st.rerun()
+        except Exception:
+            pass
+
     has_scorecard = render_scorecard()
     if not has_scorecard:
         st.info(f"Run the pipeline first: `make run COUNTRY={selected}`")
@@ -797,43 +862,7 @@ if mode == "📊 View Results":
     # UNDP PROGRAMME PICKER (between bars and methodology note)
     if has_scorecard:
         undp_csv = Path(f"data/{code}/external/undp_projects.csv")
-        if undp_csv.exists():
-            undp_df = pd.read_csv(undp_csv)
-            if len(undp_df) > 0 and 'start_date' in undp_df.columns:
-                undp_df['start_date'] = pd.to_datetime(undp_df['start_date'], errors='coerce')
-                undp_valid = undp_df.dropna(subset=['start_date']).sort_values('start_date')
-                event_dt = pd.Timestamp(event_date)
-                post = undp_valid[undp_valid['start_date'] >= event_dt].copy()
-                if len(post) > 0:
-                    options = []
-                    for _, pr in post.iterrows():
-                        d = pr['start_date'].strftime('%Y-%m-%d')
-                        t = str(pr.get('title',''))[:65]
-                        b = f"${pr['total_budget']:,.0f}" if pd.notna(pr.get('total_budget')) else ""
-                        options.append({'label': f"{d} — {t} {b}".strip(), 'date': d})
-                    current_int = config['events'].get('intervention_start', event_date)
-                    current_idx = 0
-                    for i, o in enumerate(options):
-                        if o['date'] == current_int:
-                            current_idx = i
-                            break
-                    sel_prog = st.selectbox(
-                        "UNDP Project",
-                        range(len(options)),
-                        format_func=lambda i: options[i]['label'],
-                        index=current_idx,
-                        key="undp_prog_pick"
-                    )
-                    new_int = options[sel_prog]['date']
-                    if new_int != current_int:
-                        config['events']['intervention_start'] = new_int
-                        with open(f"config/{selected}.yaml", 'w') as f_out:
-                            yaml.dump(config, f_out, default_flow_style=False, sort_keys=False)
-                        subprocess.run(
-                            f"python pipeline/recovery_scorecard.py --config config/{selected}.yaml",
-                            shell=True, capture_output=True, timeout=60
-                        )
-                        st.rerun()
+        # UNDP picker moved above scorecard
 
     # METHODOLOGY & DISCLAIMERS
     if has_scorecard:
@@ -841,7 +870,7 @@ if mode == "📊 View Results":
             <div style="font-size:.88rem;font-weight:600;color:#e6edf3;margin-bottom:.6rem;">Methodology & Assumptions</div>
             <div style="font-size:.78rem;color:#c9d1d9;line-height:1.7;">
                 <p style="margin:0 0 .5rem 0;"><b>What this shows:</b> Observed changes in satellite indicators before and after disaster events and UNDP interventions. These are correlations, not causal estimates. UNDP is one of many actors on the ground, and observed recovery reflects the combined contributions of multiple organisations, government efforts, and local communities.</p>
-                <p style="margin:0 0 .5rem 0;"><b>How recovery is calculated:</b> &ldquo;Overall Recovery&rdquo; measures how much of the initial decline (from the pre-event average to the single worst post-event month) has been regained. &ldquo;Since Selected Project&rdquo; measures recovery after the intervention start date. Both are capped at 100%, and &ldquo;Since Programme&rdquo; never exceeds &ldquo;Overall&rdquo;. Only units with &gt;10% decline are included; others are &ldquo;Stable&rdquo;. For nightlights, the baseline is the simple mean of all pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied. For events occurring in the last week of a month, the first full post-event month is used as the starting point.</p>
+                <p style="margin:0 0 .5rem 0;"><b>How recovery is calculated:</b> &ldquo;Targeted Recovery&rdquo; measures how much of the initial decline (from the pre-event average to the single worst post-event month) has been regained. &ldquo;Since Selected Project&rdquo; measures recovery after the intervention start date. Both are capped at 100%, and &ldquo;Since Programme&rdquo; never exceeds &ldquo;Overall&rdquo;. Only units with &gt;10% decline are included; others are &ldquo;Stable&rdquo;. For nightlights, the baseline is the simple mean of all pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied. For events occurring in the last week of a month, the first full post-event month is used as the starting point.</p>
                 <p style="margin:0 0 .5rem 0;"><b>GDP conversion:</b> Nightlight recovery converted to GDP using Henderson, Storeygard &amp; Weil (2012) elasticity of 0.3 (global average). Economic values use World Bank GDP per capita (WDI 2023) and UN population estimates, applied proportionally to affected administrative units.</p>
                 <p style="margin:0 0 .5rem 0;"><b>Limitations:</b> (1) Budget = allocations, not disbursements. (2) Satellite data affected by cloud cover, snow, sensors. (3) Causal attribution requires econometric methods (e.g., Synthetic Controls, Difference-in-Differences) in the Impact Measurement tab.</p>
                 <p style="margin:0;"><b>Purpose:</b> Rapid monitoring and prioritisation tool. Not a substitute for rigorous impact evaluation.</p>
@@ -1403,11 +1432,11 @@ For each indicator and administrative unit:
 - **Baseline:** Mean value across all available pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied.
 - **Trough:** The single worst post-event month (captures rapid-onset shocks).
 - **Affected units:** Only units with >10% decline from baseline are scored. Others are classified as "Stable."
-- **Overall Recovery:** (Current - Trough) / (Baseline - Trough) x 100, capped at 100%.
+- **Targeted Recovery:** (Current - Trough) / (Baseline - Trough) x 100, capped at 100%.
 - **Since Selected Project:** Recovery measured from the selected UNDP project start date.
 - **Late-month events:** If the disaster occurs after the 21st of the month, the event month is treated as pre-event (monthly composites dilute within-month shocks).
 
-The "Since Project" metric can never exceed "Overall" recovery (logical consistency constraint).
+The "Since Project" metric can never exceed "Targeted" recovery (logical consistency constraint).
 
 ---
 
