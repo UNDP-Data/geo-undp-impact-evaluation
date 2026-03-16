@@ -286,15 +286,13 @@ st.markdown("""
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    # Admin toggle
+    # Admin/User mode
     is_admin = st.toggle("Admin Mode", value=False, key="admin_toggle")
-
-    else:
-        mode = st.radio("Mode", ["📊 View Results", "ℹ️ About"],
-                    is_admin = st.toggle("Admin Mode", value=False, key="admin_toggle")
     if is_admin:
-        mode = st.radio("Mode", ["📊 View Results", "⚙️ Setup & Run", "ℹ️ About"],
-                    label_visibility="collapsed", key="main_mode")
+        _modes = ["\U0001f4ca View Results", "\u2699\ufe0f Setup & Run", "\u2139\ufe0f About"]
+    else:
+        _modes = ["\U0001f4ca View Results", "\u2139\ufe0f About"]
+    mode = st.radio("Mode", _modes, label_visibility="collapsed", key="main_mode")
     st.markdown("---")
 
     cfg_files = sorted(glob.glob("config/*.yaml"))
