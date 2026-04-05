@@ -1,6 +1,5 @@
 # Data (downloaded by pipeline — too large for git)
 data/
-outputs/
 
 # Python
 .venv/

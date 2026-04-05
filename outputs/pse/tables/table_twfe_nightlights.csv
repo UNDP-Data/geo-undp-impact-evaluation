@@ -1,0 +1,13 @@
+,"Levels
+(No Controls)","Levels
+(+ Rainfall)","Log
+(No Controls)","Log
+(+ Rainfall)"
+,(1),(2),(3),(4)
+Treated × Post,-12.5186***,-12.4287***,-1.5227***,-1.5250***
+,(1.2743),(1.2724),(0.1445),(0.1462)
+Rainfall Control,No,Yes,No,Yes
+District FE,Yes,Yes,Yes,Yes
+Time FE,Yes,Yes,Yes,Yes
+Observations,576,560,576,560
+R²,0.71,0.72,0.75,0.75

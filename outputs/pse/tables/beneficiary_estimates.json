@@ -1,0 +1,39 @@
+{
+  "direct_population": {
+    "total_in_buffers": 77434.140625,
+    "unique_estimate": 54203.8984375,
+    "avg_per_site": 170.55978393554688,
+    "n_sites": 454,
+    "buffer_m": 500,
+    "method": "WorldPop extraction"
+  },
+  "economic_benefit": {
+    "viirs_coef": 0.1622625227194546,
+    "viirs_pct_change": 17.616897187186865,
+    "gdp_impacts": {
+      "low": {
+        "elasticity": 0.2,
+        "gdp_impact_pct": 3.5233794374373733,
+        "income_gain_per_person": 42.28055324924848
+      },
+      "medium": {
+        "elasticity": 0.3,
+        "gdp_impact_pct": 5.28506915615606,
+        "income_gain_per_person": 63.42082987387271
+      },
+      "high": {
+        "elasticity": 0.5,
+        "gdp_impact_pct": 8.808448593593432,
+        "income_gain_per_person": 105.70138312312119
+      }
+    }
+  },
+  "infrastructure_benefit": {
+    "sar_coef": 1.3709890392524688,
+    "structure_increase_pct": 13.709890392524688,
+    "structures_improved_estimate": 6854.945196262343,
+    "households_benefiting": 6854.945196262343,
+    "people_benefiting": 37702.19857944289,
+    "method": "SAR backscatter proxy"
+  }
+}

@@ -1,0 +1,7 @@
+Outcome,Outcome_Label,Specification,Sample,Treatment_Var,Controls,Coefficient,Coeff_Display,SE,SE_Display,T-stat,P-value,N,R2,N_Units,N_Periods,Event
+nightlights,Nightlights (Radiance),Log,UNDP Period,treated_x_undp,rainfall,-0.3940186163914332,-0.3940***,0.09100516815292671,(0.0910),-4.329629013259085,1.7999585104622184e-05,560,0.0370084361112738,16,35,UNDP
+nightlights,Nightlights (Radiance),Log,Triple Diff,treated_x_post_x_undp,rainfall,-0.3940186163914332,-0.3940***,0.09100516815292671,(0.0910),-4.329629013259085,1.7999585104622184e-05,560,0.0370084361112738,16,35,UNDP×Conflict
+ndvi,Vegetation (NDVI),Levels,UNDP Period,treated_x_undp,rainfall,-0.02784888225809555,-0.0278**,0.013547194659636674,(0.0135),-2.05569366631087,0.0403225806015739,560,0.026742463459063504,16,35,UNDP
+ndvi,Vegetation (NDVI),Levels,Triple Diff,treated_x_post_x_undp,rainfall,-0.02784888225809555,-0.0278**,0.013547194659636674,(0.0135),-2.05569366631087,0.0403225806015739,560,0.026742463459063504,16,35,UNDP×Conflict
+price_bread,Bread Price (ILS),Log,UNDP Period,treated_x_undp,rainfall,2.2275642645800953,2.2276***,0.010222245452598254,(0.0102),217.9134002318347,0.0,179,0.8286954233488777,6,35,UNDP
+price_bread,Bread Price (ILS),Log,Triple Diff,treated_x_post_x_undp,rainfall,2.2275642645800953,2.2276***,0.010222245452598254,(0.0102),217.9134002318347,0.0,179,0.8286954233488777,6,35,UNDP×Conflict
