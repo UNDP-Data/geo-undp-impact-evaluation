@@ -1,0 +1,6 @@
+Variable,Treated Mean,Control (Raw),SMD (Raw),Control (Weighted),SMD (Weighted),Status
+TABLE A2: IPW BALANCE CHECK,,,,,,
+log_nightlights,0.724,1.11,-0.383,0.627,0.096,Balanced
+rainfall,54.463,64.71,-0.631,53.831,0.039,Balanced
+ndvi,0.258,0.245,0.244,0.257,0.024,Balanced
+ndbi,-0.069,-0.071,0.041,-0.066,-0.065,Balanced

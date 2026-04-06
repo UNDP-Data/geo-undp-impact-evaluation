@@ -1,0 +1,27 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:               nbr_mean   R-squared:                       0.022
+Model:                            OLS   Adj. R-squared:                 -0.028
+Method:                 Least Squares   F-statistic:                    0.4299
+Date:                Sat, 15 Nov 2025   Prob (F-statistic):              0.732
+Time:                        15:07:42   Log-Likelihood:                 29.221
+No. Observations:                  63   AIC:                            -50.44
+Df Residuals:                      59   BIC:                            -41.87
+Df Model:                           3                                         
+Covariance Type:                  HC3                                         
+================================================================================
+                   coef    std err          z      P>|z|      [0.025      0.975]
+--------------------------------------------------------------------------------
+Intercept        0.4706      0.029     16.314      0.000       0.414       0.527
+treated          0.0172      0.154      0.111      0.911      -0.285       0.319
+post            -0.0451      0.041     -1.090      0.276      -0.126       0.036
+treated_post    -0.0117      0.184     -0.063      0.949      -0.372       0.348
+==============================================================================
+Omnibus:                        7.786   Durbin-Watson:                   0.972
+Prob(Omnibus):                  0.020   Jarque-Bera (JB):                7.653
+Skew:                          -0.851   Prob(JB):                       0.0218
+Kurtosis:                       3.133   Cond. No.                         10.8
+==============================================================================
+
+Notes:
+[1] Standard Errors are heteroscedasticity robust (HC3)

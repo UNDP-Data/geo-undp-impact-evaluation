@@ -1105,10 +1105,10 @@ if mode == "📊 View Results":
                             mp = [f for f in figs if f.name.startswith('map_')]
                             if ts and mp:
                                 c1, c2 = st.columns([45, 55])
-                                with c1: st.image(str(ts[0]), width='stretch')
-                                with c2: st.image(str(mp[0]), width='stretch')
-                            elif ts: st.image(str(ts[0]), width='stretch')
-                            elif mp: st.image(str(mp[0]), width='stretch')
+                                with c1: st.image(str(ts[0]), use_container_width=True)
+                                with c2: st.image(str(mp[0]), use_container_width=True)
+                            elif ts: st.image(str(ts[0]), use_container_width=True)
+                            elif mp: st.image(str(mp[0]), use_container_width=True)
                             st.markdown("---")
                     if not found: st.info("No data yet.")
                 ti += 1
@@ -1118,12 +1118,12 @@ if mode == "📊 View Results":
                     st.caption("Google search interest as proxy for public concern")
                     for f in trend_files:
                         st.markdown(f"**{f.stem.replace('trends_','').replace('_',' ').title()}**")
-                        st.image(str(f), width='stretch')
+                        st.image(str(f), use_container_width=True)
                 ti += 1
 
             if undp_files:
                 with tabs[ti]:
-                    for f in undp_files: st.image(str(f), width='stretch')
+                    for f in undp_files: st.image(str(f), use_container_width=True)
                 ti += 1
 
             if has_impact:
@@ -1134,7 +1134,7 @@ if mode == "📊 View Results":
                         for f in impact_files['maps']:
                             label = f.stem.replace('_clean','').replace('_three_panel','').replace('_',' ').title()
                             st.markdown(f"*{label}*")
-                            st.image(str(f), width='stretch')
+                            st.image(str(f), use_container_width=True)
                         st.markdown("---")
                     if impact_files['coef_plots']:
                         st.markdown("**Buffer Zone Analysis — Treatment Effect by Distance**")
@@ -1142,11 +1142,11 @@ if mode == "📊 View Results":
                         cols = st.columns(n_cols)
                         for i, f in enumerate(impact_files['coef_plots']):
                             label = f.stem.replace('coef_plot_','').replace('_buffer','').replace('_',' ').title()
-                            with cols[i % n_cols]: st.image(str(f), caption=label, width='stretch')
+                            with cols[i % n_cols]: st.image(str(f), caption=label, use_container_width=True)
                         st.markdown("---")
                     if impact_files['plots']:
                         st.markdown("**Difference-in-Differences Estimates**")
-                        for f in impact_files['plots']: st.image(str(f), width='stretch')
+                        for f in impact_files['plots']: st.image(str(f), use_container_width=True)
                         st.markdown("---")
                     if impact_files['pretrends']:
                         st.markdown("**Pre-Trends Validation**")
@@ -1154,7 +1154,7 @@ if mode == "📊 View Results":
                         cols = st.columns(n_cols)
                         for i, f in enumerate(impact_files['pretrends']):
                             label = f.stem.replace('pretrends_','').replace('_baseline','').replace('_',' ').title()
-                            with cols[i % n_cols]: st.image(str(f), caption=label, width='stretch')
+                            with cols[i % n_cols]: st.image(str(f), caption=label, use_container_width=True)
                         st.markdown("---")
                     if impact_files['tables']:
                         st.markdown("**Regression Results**")
@@ -1163,7 +1163,7 @@ if mode == "📊 View Results":
                             if 'comprehensive_unified' in f.name and 'control_group' in df_table.columns:
                                 df_table = df_table[df_table['control_group'].str.contains('500m.*1.5km|500m-1.5km|0.5.*1.5', case=False, na=False)]
                             st.markdown(f"*{f.stem.replace('_',' ').title()}*")
-                            st.dataframe(df_table, hide_index=True, width='stretch')
+                            st.dataframe(df_table, hide_index=True, use_container_width=True)
                 ti += 1
 
             if raster_pairs:
@@ -1171,7 +1171,7 @@ if mode == "📊 View Results":
                     st.caption("Pre-Event, Post-Event, and Post-Intervention satellite imagery")
                     for ind, f in raster_pairs:
                         st.markdown(f"**{RASTER_NAMES.get(ind, ind.upper())}**")
-                        st.image(str(f), width='stretch')
+                        st.image(str(f), use_container_width=True)
 
     # AI CO-PILOT IN SIDEBAR
     with st.sidebar:
@@ -1184,12 +1184,12 @@ if mode == "📊 View Results":
         c1, c2 = st.columns([45, 55])
         with c1:
             with open(panel_path, 'rb') as f:
-                st.download_button("📥 Panel Dataset (CSV)", data=f, file_name=f"panel_data_{code}.csv", mime="text/csv", width='stretch')
+                st.download_button("📥 Panel Dataset (CSV)", data=f, file_name=f"panel_data_{code}.csv", mime="text/csv", use_container_width=True)
         sc = figures_dir / "scorecard_data.csv"
         if sc.exists():
             with c2:
                 with open(sc, 'rb') as f:
-                    st.download_button("📥 Scorecard (CSV)", data=f, file_name=f"scorecard_{code}.csv", mime="text/csv", width='stretch')
+                    st.download_button("📥 Scorecard (CSV)", data=f, file_name=f"scorecard_{code}.csv", mime="text/csv", use_container_width=True)
 
     summary_data = pd.read_csv(figures_dir/"summary_statistics.csv") if (figures_dir/"summary_statistics.csv").exists() else None
     if summary_data is not None:
@@ -1243,7 +1243,7 @@ elif mode == "⚙️ Setup & Run":
         with c2: send = st.date_input("Study end", date.fromisoformat(d_end), key="cf_se")
         with c3: admin_level = st.selectbox("Admin level", [1,2,3], index=[1,2,3].index(d_admin), key="cf_al")
 
-        if st.button("💾 Save Configuration", type="primary", width='stretch', key="save_cfg"):
+        if st.button("💾 Save Configuration", type="primary", use_container_width=True, key="save_cfg"):
             nc = {
                 'country_name': pick,
                 'country_code': ref['iso'],
@@ -1359,11 +1359,11 @@ elif mode == "⚙️ Setup & Run":
     cols = st.columns(4)
     for i, (lb, cmd) in enumerate(steps):
         with cols[i % 4]:
-            if st.button(lb, width='stretch', key=f"run_{lb}"):
+            if st.button(lb, use_container_width=True, key=f"run_{lb}"):
                 run_cmd(cmd, lb)
 
     st.markdown("")
-    if st.button("▶️ Run Full Pipeline", width='stretch', type="primary", key="run_full"):
+    if st.button("▶️ Run Full Pipeline", use_container_width=True, type="primary", key="run_full"):
         run_cmd(
             f"make run COUNTRY={run_country} && python pipeline/recovery_scorecard.py --config config/{run_country}.yaml",
             "Full Pipeline"

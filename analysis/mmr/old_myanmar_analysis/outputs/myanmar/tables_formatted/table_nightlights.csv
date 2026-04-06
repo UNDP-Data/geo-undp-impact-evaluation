@@ -1,0 +1,16 @@
+TABLE 1: NIGHTLIGHTS,,,,,,
+Specification,"Spatial 25km
+(Raw)","Spatial 25km
+(Rain)","Spatial 50km
+(Raw)","Spatial 50km
+(Rain)","Donut (15-50km)
+(Raw)","Donut (15-50km)
+(Rain)"
+Treated x Post,4.0169***,3.4212***,2.6905***,2.3131**,2.6167*,2.5479*
+,(1.1950),(1.1081),(0.9805),(0.9242),(1.5346),(1.4895)
+Rainfall Control,No,Yes,No,Yes,No,Yes
+Conflict Control,No,No,No,No,No,No
+Township FE,Yes,Yes,Yes,Yes,Yes,Yes
+Time FE,Yes,Yes,Yes,Yes,Yes,Yes
+Observations,"1,920","1,920","2,340","2,340","1,332","1,332"
+R-Squared,0.028,0.040,0.013,0.019,0.017,0.018

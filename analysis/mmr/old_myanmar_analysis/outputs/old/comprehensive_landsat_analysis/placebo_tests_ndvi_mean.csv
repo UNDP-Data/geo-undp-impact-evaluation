@@ -1,0 +1,2 @@
+actual_coefficient,actual_pvalue,placebo_mean,placebo_std,placebo_pvalue,outcome
+-0.007625204362614074,0.9766737354203845,-0.006729503459271049,0.10909654246970601,1.0,NDVI (Vegetation Index)
