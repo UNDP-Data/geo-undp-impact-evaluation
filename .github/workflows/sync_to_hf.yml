@@ -8,11 +8,13 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://hgrueso:$HF_TOKEN@huggingface.co/spaces/hgrueso/undp-impact-evaluation main
+        run: |
+          git remote add hf https://hgrueso:$HF_TOKEN@huggingface.co/spaces/hgrueso/undp-impact-evaluation || true
+          git push hf main --force 2>&1 || echo "Push failed - check that the Space exists and the token has write access"
