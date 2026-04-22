@@ -525,6 +525,11 @@ def render_copilot_sidebar(config, figures_dir, code):
                 from openai import OpenAI
                 api_key = os.getenv("OPENAI_API_KEY")
                 if not api_key:
+                    try:
+                        api_key = st.secrets["OPENAI_API_KEY"]
+                    except Exception:
+                        pass
+                if not api_key:
                     env_path = Path(".env")
                     if env_path.exists():
                         for ln in env_path.read_text().splitlines():
