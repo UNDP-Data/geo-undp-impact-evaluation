@@ -889,6 +889,8 @@ if mode == "📊 View Results":
     # INDICATIVE ECONOMIC REACTIVATION
     if has_scorecard:
         _undp_path = Path("data/" + code + "/external/undp_projects.csv")
+        if not _undp_path.exists():
+            _undp_path = Path("outputs/" + code + "/external/undp_projects.csv")
         if _undp_path.exists():
             try:
                 _undp = pd.read_csv(_undp_path)
