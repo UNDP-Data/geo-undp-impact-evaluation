@@ -942,7 +942,11 @@ if mode == "📊 View Results":
                 _prog_react = _react * _bshare
                 _roi = _prog_react / _sel_b if _sel_b > 0 else 0
 
-                with st.expander("Indicative Economic Reactivation", expanded=False):
+                with st.expander("Indicative Economic Reactivation", expanded=True):
+                    if not _has_nl:
+                        st.info('Economic reactivation estimates require nightlight recovery data.')
+                    elif _sel_b <= 0:
+                        st.info('Economic reactivation estimates require a UNDP project with budget data. Select a project above.')
                     if _has_nl and _sel_b > 0:
                         def _fmt_big(v):
                             if v >= 1e9: return "${:.1f}B".format(v/1e9)
