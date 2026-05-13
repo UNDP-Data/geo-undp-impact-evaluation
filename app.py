@@ -388,6 +388,8 @@ POP_M = {
 def load_wb_data(code, event_year):
     """Load World Bank GDP and population data. Returns dict with pre-shock values."""
     wb_path = Path("data/" + code + "/external/wb_indicators.csv")
+    if not wb_path.exists():
+        wb_path = Path("outputs/" + code + "/external/wb_indicators.csv")
     result = {"gdp": 0, "gdp_pc": 0, "pop": 0, "year": 0, "source": "N/A"}
     if not wb_path.exists():
         # Fallback to hardcoded
@@ -427,6 +429,7 @@ def render_copilot_sidebar(config, figures_dir, code):
                        + "since project " + str(round(r.get("undp_recovery_pct", 0))) + "%, "
                        + str(int(r.get("n_affected_units", 0))) + "/" + str(int(r.get("n_total_units", 0))) + " units")
     undp_csv = Path("data/" + code + "/external/undp_projects.csv")
+    if not undp_csv.exists(): undp_csv = Path("outputs/" + code + "/external/undp_projects.csv")
     if undp_csv.exists():
         udf = pd.read_csv(undp_csv)
         ctx.append("UNDP projects: " + str(len(udf)))
@@ -827,6 +830,8 @@ if mode == "📊 View Results":
         # SCORECARD (bars only — note rendered after UNDP picker)
     # UNDP PROJECT SELECTOR
     _undp_p = Path("data/" + code + "/external/undp_projects.csv")
+    if not _undp_p.exists():
+        _undp_p = Path("outputs/" + code + "/external/undp_projects.csv")
     if _undp_p.exists():
         try:
             _udf = pd.read_csv(_undp_p)
