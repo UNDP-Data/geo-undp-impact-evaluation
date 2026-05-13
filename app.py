@@ -84,6 +84,8 @@ COUNTRIES = {
     'cod': {'flag':'🇨🇩','name':'DR Congo','event':'M23 Conflict','event_date':'Mar 1, 2022'},
     'som': {'flag':'🇸🇴','name':'Somalia','event':'Drought','event_date':'Jan 1, 2023'},
     'jam': {'flag':'🇯🇲','name':'Jamaica','event':'Hurricane Melissa','event_date':'Oct 28, 2025'},
+    'mwi': {'flag':'🇲🇼','name':'Malawi','event':'Cyclone Freddy','event_date':'Mar 12, 2023'},
+    'npl': {'flag':'🇳🇵','name':'Nepal','event':'M6.4 Earthquake','event_date':'Nov 3, 2023'},
     'jamaica': {'flag':'🇯🇲','name':'Jamaica','event':'Hurricane Melissa','event_date':'Oct 28, 2025'},
     'cub': {'flag':'🇨🇺','name':'Cuba','event':'Hurricane Melissa','event_date':'Oct 29, 2025'},
     'bhs': {'flag':'🇧🇸','name':'Bahamas','event':'Hurricane Melissa','event_date':'Oct 30, 2025'},
