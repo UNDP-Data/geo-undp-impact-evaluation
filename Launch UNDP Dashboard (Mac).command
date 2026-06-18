@@ -7,14 +7,13 @@ echo "========================================="
 echo ""
 
 if ! command -v python3 &> /dev/null; then
-    echo "Python 3 is required but not installed."
-    echo "Opening the download page. Install Python, then run this again."
+    osascript -e 'display dialog "Python 3 is required to run this dashboard.
+
+Click \"Open Download Page\", install Python, then double-click this launcher again." buttons {"Open Download Page"} default button 1 with title "UNDP Dashboard - Setup Needed" with icon caution'
     open "https://www.python.org/downloads/"
-    read -p "Press Enter to exit..."
     exit 1
 fi
 
-# Skip Streamlit's first-run email prompt
 mkdir -p ~/.streamlit
 [ -f ~/.streamlit/credentials.toml ] || printf '[general]\nemail = ""\n' > ~/.streamlit/credentials.toml
 

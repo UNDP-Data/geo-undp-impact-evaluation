@@ -9,19 +9,15 @@ echo.
 
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo Python is required but not installed.
-    echo Opening the download page. During install, CHECK "Add Python to PATH".
-    echo Then double-click this file again.
+    mshta "javascript:var sh=new ActiveXObject('WScript.Shell'); sh.Popup('Python is required to run this dashboard.\n\nClick OK to open the download page. During install, CHECK the box \"Add Python to PATH\". Then double-click this launcher again.',0,'UNDP Dashboard - Setup Needed',48); close();"
     start https://www.python.org/downloads/
-    pause
     exit /b
 )
 
-REM Skip Streamlit's first-run email prompt
 if not exist "%USERPROFILE%\.streamlit" mkdir "%USERPROFILE%\.streamlit"
 if not exist "%USERPROFILE%\.streamlit\credentials.toml" (
     echo [general]> "%USERPROFILE%\.streamlit\credentials.toml"
-    echo email = ""># >> "%USERPROFILE%\.streamlit\credentials.toml"
+    echo email = "">> "%USERPROFILE%\.streamlit\credentials.toml"
 )
 
 if not exist ".venv" (
