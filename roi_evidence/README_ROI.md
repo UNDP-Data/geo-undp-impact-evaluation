@@ -1,50 +1,34 @@
 # Early Recovery — Economic Reactivation & ROI Evidence
 
-This folder is the **single source of truth** for the recovery and ROI figures
-used in the policy briefing deck (`recovery_evidence.qmd`).
+Single source of truth for the recovery/ROI figures in the policy key-messages.
 
 ## Files
-- `roi_calculation.py` — documented calculation. Run it to (re)generate `roi_results.json`.
-- `roi_results.json` — machine-readable results (all figures, tiers, assumptions).
-- `recovery_evidence.qmd` — Quarto reveal.js policy deck.
-- `README_ROI.md` — this file.
+- `key_messages.md` — final key-messages text (the deliverable).
+- `key_messages_slides.qmd` — Quarto reveal.js deck displaying the key messages.
+- `CALCULATIONS.md` — how every number was computed, linked to source files + scripts.
+- `roi_attributed.py` — Myanmar & Gaza ROI (reproduces headline numbers) -> `roi_attributed.json`.
+- `roi_calculation.py` — full six-country table -> `roi_results.json`.
 
-## Method (conservative, satellite-anchored)
+## Reproduce the numbers
 ```
-affected_area_GDP = national_GDP * (n_affected_units / n_total_units)
-GDP_reactivation  = affected_area_GDP * (nightlight_recovery% / 100) * 0.3
-benefit_cost      = GDP_reactivation / UNDP_post_event_budget
+python3 roi_attributed.py     # Myanmar 21-39:1 ; Gaza $0.17/$1/yr
+python3 roi_calculation.py    # full country table
 ```
-Elasticity 0.3 = Henderson, Storeygard & Weil (2012), global average.
-
-## Confidence tiers
-- **CAUSAL** — difference-in-differences vs matched controls. *Myanmar only.*
-- **SECTOR** — statistically significant sector-level effect. *Gaza employment.*
-- **CORRELATIONAL** — pre-post recovery during UNDP engagement. *Syria, DRC, Ukraine, Afghanistan.*
-
-## Honest-use rules (important)
-1. Only **Myanmar** supports a causal claim (UNDP areas recovered 30–55% more, p<0.001).
-2. **Gaza**: employment/cash-for-work is the **only** intervention with a significant
-   positive economic signal (+11.8% nightlights → +3.5% GDP, p<0.001). Debris is negative;
-   shelter/WASH not significant.
-3. Per-country **dollar reactivation reflects ALL actors**, not UNDP alone. The raw
-   benefit-cost ratios (e.g. Myanmar 11,292:1) are **NOT** defensible as UNDP returns and
-   must never be presented as such. They appear in `roi_results.json` for transparency only.
-4. The "$1.13 per $1" sector-multiplier figure from earlier slide decks could **not** be
-   reproduced from repo data and should **not** be cited until rebuilt with disclosed
-   assumptions (ILO multipliers, DALY values, etc.).
-
-## Data sources (in repo)
-- `outputs/<code>/figures/scorecard_data.csv` — recovery %, unit counts
-- `outputs/<code>/external/wb_indicators.csv` — national GDP (hardcoded fallback for Syria)
-- `outputs/<code>/external/undp_projects.csv` — budgets, post-disaster flag
-- `outputs/pse/tables/gdp_sensitivity.csv` — Gaza sector-level effects
-- `outputs/pse/tables/beneficiary_estimates.json` — Gaza beneficiaries
 
 ## Render the deck
 ```
-quarto render recovery_evidence.qmd --to revealjs   # interactive HTML
-# or to PDF (if decktape installed):
-quarto render recovery_evidence.qmd --to revealjs && \
-  decktape reveal recovery_evidence.html recovery_evidence.pdf
+quarto render key_messages_slides.qmd --to revealjs
+# optional PDF:  decktape reveal key_messages_slides.html key_messages_slides.pdf
 ```
+
+## Honest-use rules
+1. **Myanmar** is the only causal claim (30–55% more recovery, p<0.001). The dollar ROI
+   (20–40:1) depends on the 3.5M beneficiary count, which is NOT in the repo — confirm it.
+2. **Gaza**: employment/cash-for-work is the only sector with a significant positive
+   economic signal. ROI scales with the beneficiary count used.
+3. **Myanmar denominator** is the total active ER portfolio (~$16.8M), NOT the single
+   earthquake project ($1,215,388). Using the smaller figure would overstate ROI ~20x.
+4. Syria, Afghanistan, DR Congo, Ukraine are **correlational** — recovery alongside
+   investment, not attributable impact.
+5. The earlier "$1.13 per $1" sector-multiplier figure could NOT be reproduced from repo
+   data and is not used.

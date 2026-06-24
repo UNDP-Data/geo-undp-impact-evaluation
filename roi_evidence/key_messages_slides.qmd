@@ -1,0 +1,79 @@
+---
+title: "Satellite Evidence on UNDP Early Recovery"
+subtitle: "Key Messages"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    transition: fade
+    width: 1280
+    height: 720
+    margin: 0.06
+    fontsize: 23px
+---
+
+## Core messages
+
+- **UNDP can now use satellite data to show where early-recovery investments are associated with measurable economic recovery in crisis settings.** Nighttime lights provide an independent proxy for local economic activity, allowing UNDP to track recovery faster, more consistently, and at scale.
+
+- **In Myanmar, roughly USD 16.8M across UNDP's active early-recovery portfolio is linked to an estimated USD 350–650M in additional local economic activity** — about **USD 20–40 for every USD 1 invested** (subject to confirmation of the beneficiary count).
+
+- **In Gaza, employment and cash-for-work is the intervention type with the clearest measurable economic payoff** — the only category with a statistically significant positive signal in nighttime lights.
+
+## Myanmar — strongest causal evidence
+
+::: {style="font-size:1.5em; font-weight:700; color:#0b5394; margin:0.2em 0;"}
+USD 20–40 in local economic activity for every USD 1 invested
+:::
+
+A difference-in-differences design compares nighttime lights before and after the 2025 earthquake, in UNDP-supported areas against comparable non-UNDP areas.
+
+- UNDP-supported areas recovered **30–55% more than comparable areas** (**p<0.001**).
+- Links roughly **USD 16.8M** (active early-recovery portfolio) to an estimated **USD 350–650M** in additional local economic activity.
+- National nighttime lights have returned to about **69%** of pre-earthquake levels.
+
+::: {style="font-size:0.6em; color:#8b949e;"}
+Source: roi_attributed.py · did_buffer_results.csv · scorecard_data.csv
+:::
+
+## Gaza — clearest intervention-level signal
+
+A sector-level treated-versus-control satellite analysis by intervention type finds:
+
+- **Employment and cash-for-work** is the only intervention type with a statistically significant positive signal: **+11.8% in nighttime lights**.
+- On a conservative satellite-verified count of about **54,000 beneficiaries**, this returns roughly **USD 0.17 per USD 1 per year**, rising toward break-even (**about USD 1 per USD 1**) once UNDP's full reported employment caseload is counted.
+- **Debris removal and shelter** are important for safety and physical recovery, but show no measurable economic signal yet.
+
+::: {style="font-size:0.6em; color:#8b949e;"}
+Source: roi_attributed.py · gdp_sensitivity.csv · beneficiary_estimates.json
+:::
+
+## Additional country findings (correlational)
+
+- **Syria — full recovery alongside USD 98M.** Nighttime lights returned to about **100%** of pre-crisis levels. Promising, but not yet a causal estimate.
+- **Afghanistan — full recovery alongside USD 97M.** About **100%** recovered, in a difficult operating environment.
+- **DR Congo — full recovery alongside USD 251M.** About **100%** recovered; a strong portfolio-level signal.
+- **Ukraine — partial recovery alongside USD 971M, despite ongoing war.** About **48%** recovered; a resilience and partial-recovery signal.
+
+::: {style="font-size:0.6em; color:#8b949e;"}
+Source: roi_calculation.py · scorecard_data.csv · undp_projects.csv
+:::
+
+# Methodological notes {background-color="#f4f4f4"}
+
+## How to interpret these numbers
+
+- **Myanmar is the strongest causal estimate.** The 30–55% effect is directly estimated (difference-in-differences vs comparable non-UNDP areas).
+- **The Myanmar dollar return depends primarily on the beneficiary assumption** — about **3.5M beneficiaries** and **USD 1,122 GDP per capita**. The budget is sourced from the dashboard; the beneficiary count should be confirmed before the ROI figure is cited externally.
+- **Gaza is the strongest intervention-level signal** — employment is the only sector with a significant positive economic effect. The return estimate depends on the beneficiary count used.
+
+## Assumptions and caveats
+
+- **Syria, Afghanistan, DR Congo, and Ukraine are correlational** — recovery observed alongside UNDP investment, not yet attributable impact.
+- Nighttime lights are converted to GDP using a **standard global elasticity of 0.3**; most reliable where lights capture economic activity, weaker in very low-light or active-conflict settings.
+- Recovery in an area reflects **all actors on the ground**, not UNDP alone, except in Myanmar where the design isolates UNDP's marginal effect.
+- **Budgets are post-event project allocations from the dashboard** and should be validated before external publication.
+
+::: {style="font-size:0.6em; color:#8b949e;"}
+All figures reproducible: roi_attributed.py, roi_calculation.py · see CALCULATIONS.md
+:::
