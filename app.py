@@ -19,7 +19,30 @@ from datetime import date
 from dotenv import load_dotenv
 import pandas as pd
 
-load_dotenv()
+# Credentials are stored in a stable location in the user's home folder so they
+# persist regardless of where the app was unzipped/launched from.
+USER_ENV_PATH = Path.home() / ".undp_dashboard" / ".env"
+load_dotenv()                       # local .env (dev convenience), if present
+if USER_ENV_PATH.exists():
+    load_dotenv(USER_ENV_PATH)      # persisted user credentials (overrides)
+
+
+def safe_image(path, **kwargs):
+    """Display an image only if it is a valid, non-empty image file.
+    Prevents a single corrupt/empty figure from crashing the whole tab."""
+    try:
+        from PIL import Image
+        p = str(path)
+        if (not os.path.exists(p)) or os.path.getsize(p) == 0:
+            st.caption("(figure not available)")
+            return False
+        with Image.open(p) as _im:
+            _im.verify()            # validate without fully decoding
+        st.image(p, **kwargs)
+        return True
+    except Exception:
+        st.caption("(figure could not be displayed)")
+        return False
 
 st.set_page_config(page_title="UNDP Early Recovery Impact", page_icon="🌍",
                    layout="wide", initial_sidebar_state="expanded")
@@ -149,6 +172,8 @@ QUICK_REF = {
     'Afghanistan':  {'iso':'AFG','acled':'Afghanistan','etype':'earthquake','edate':'2023-10-07','commodity':'Wheat flour','admin':2},
     'Bangladesh':   {'iso':'BGD','acled':'Bangladesh','etype':'cyclone','edate':'2024-05-01','commodity':'Rice','admin':2},
     'DR Congo':     {'iso':'COD','acled':'Democratic Republic of Congo','etype':'conflict','edate':'2022-03-01','commodity':'Cassava flour','admin':2},
+    'DR Congo (COVID-19)':  {'iso':'COD','acled':'Democratic Republic of Congo','etype':'pandemic','edate':'2020-03-10','commodity':'Cassava flour','admin':2},
+    'DR Congo (Ebola)':     {'iso':'COD','acled':'Democratic Republic of Congo','etype':'pandemic','edate':'2018-08-01','commodity':'Cassava flour','admin':2},
     'Ethiopia':     {'iso':'ETH','acled':'Ethiopia','etype':'conflict','edate':'2020-11-04','commodity':'Wheat','admin':2},
     'Gaza Strip':   {'iso':'PSE','acled':'Palestine','etype':'conflict','edate':'2023-10-07','commodity':'Bread','admin':2},
     'Haiti':        {'iso':'HTI','acled':'Haiti','etype':'conflict','edate':'2024-03-01','commodity':'Rice','admin':2},
@@ -1123,10 +1148,10 @@ if mode == "📊 View Results":
                             mp = [f for f in figs if f.name.startswith('map_')]
                             if ts and mp:
                                 c1, c2 = st.columns([45, 55])
-                                with c1: st.image(str(ts[0]), use_container_width=True)
-                                with c2: st.image(str(mp[0]), use_container_width=True)
-                            elif ts: st.image(str(ts[0]), use_container_width=True)
-                            elif mp: st.image(str(mp[0]), use_container_width=True)
+                                with c1: safe_image(str(ts[0]), use_container_width=True)
+                                with c2: safe_image(str(mp[0]), use_container_width=True)
+                            elif ts: safe_image(str(ts[0]), use_container_width=True)
+                            elif mp: safe_image(str(mp[0]), use_container_width=True)
                             st.markdown("---")
                     if not found: st.info("No data yet.")
                 ti += 1
@@ -1251,7 +1276,7 @@ elif mode == "⚙️ Setup & Run":
             d_end = '2025-12-31'
             d_admin = ref['admin']
 
-        etypes = ["earthquake","conflict","flood","cyclone","drought"]
+        etypes = ["earthquake","conflict","flood","cyclone","drought","pandemic"]
         c1, c2 = st.columns(2)
         with c1: etype = st.selectbox("Event type", etypes, index=etypes.index(d_etype), key="cf_et")
         with c2: edate = st.date_input("Event date", date.fromisoformat(d_edate), key="cf_ed")
@@ -1296,7 +1321,7 @@ elif mode == "⚙️ Setup & Run":
     # CREDENTIALS
     st.markdown("---")
     with st.expander("🔑 Credentials", expanded=False):
-        st.caption("API keys are saved locally in .env and never shared.")
+        st.caption("API keys are saved locally on this computer (in your home folder) and never shared.")
         c1, c2 = st.columns(2)
         with c1: acled_email = st.text_input("ACLED Email", value=os.getenv("ACLED_EMAIL",""), key="acled_em")
         with c2: acled_key = st.text_input("ACLED Key", value=os.getenv("ACLED_KEY",""), type="password", key="acled_k")
@@ -1304,7 +1329,8 @@ elif mode == "⚙️ Setup & Run":
         with c3: gee_project = st.text_input("GEE Project ID", value=os.getenv("GEE_PROJECT",""), key="gee_proj")
         with c4: openai_key = st.text_input("AI Co-pilot Key", value=os.getenv("OPENAI_API_KEY",""), type="password", key="openai_k")
         if st.button("Save Credentials", key="save_creds"):
-            env_path = Path(".env")
+            env_path = USER_ENV_PATH
+            env_path.parent.mkdir(parents=True, exist_ok=True)
             lines = env_path.read_text().splitlines() if env_path.exists() else []
             updates = {}
             if acled_email: updates["ACLED_EMAIL"] = acled_email
@@ -1325,7 +1351,7 @@ elif mode == "⚙️ Setup & Run":
                     new_lines.append(k + "=" + v)
             env_path.write_text(chr(10).join(new_lines) + chr(10))
             os.environ.update(updates)
-            st.success("Credentials saved to .env")
+            st.success("Credentials saved. They will be remembered next time you open the app.")
 
     # RUN PIPELINE
     run_country = setup_country_code or selected
