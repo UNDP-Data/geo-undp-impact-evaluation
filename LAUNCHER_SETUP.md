@@ -3,7 +3,7 @@
 Goal: two downloadable launchers (Windows and Mac) that set up on first use and then
 run the app with **no terminal window**. The browser opens automatically.
 
-All launcher files live in the **repo root, next to `app.py`**.
+All launcher files (including `icon.png` and `icon.ico`) live in the **repo root, next to `app.py`**.
 
 ## Windows (single file)
 - File: **`UNDP Dashboard.vbs`**

@@ -20,6 +20,20 @@ homeEnv  = credDir & "\.env"
 venvPy   = scriptDir & "\.venv\Scripts\python.exe"
 sentinel = scriptDir & "\.venv\.deps_installed"
 
+' --- Create a branded desktop shortcut on first run (so it looks like a real app) ---
+Dim iconPath, deskLnk, lnk
+iconPath = scriptDir & "\icon.ico"
+deskLnk  = sh.SpecialFolders("Desktop") & "\UNDP Dashboard.lnk"
+If fso.FileExists(iconPath) And Not fso.FileExists(deskLnk) Then
+    Set lnk = sh.CreateShortcut(deskLnk)
+    lnk.TargetPath = "wscript.exe"
+    lnk.Arguments  = Chr(34) & WScript.ScriptFullName & Chr(34)
+    lnk.WorkingDirectory = scriptDir
+    lnk.IconLocation = iconPath
+    lnk.Description = "UNDP Early Recovery Dashboard"
+    lnk.Save
+End If
+
 ' --- Seed credentials from a sibling pilot_credentials.txt (if present) ---
 '     pilot_credentials.txt is gitignored and distributed privately, NEVER committed.
 credFile = scriptDir & "\pilot_credentials.txt"
