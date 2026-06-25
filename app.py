@@ -172,8 +172,6 @@ QUICK_REF = {
     'Afghanistan':  {'iso':'AFG','acled':'Afghanistan','etype':'earthquake','edate':'2023-10-07','commodity':'Wheat flour','admin':2},
     'Bangladesh':   {'iso':'BGD','acled':'Bangladesh','etype':'cyclone','edate':'2024-05-01','commodity':'Rice','admin':2},
     'DR Congo':     {'iso':'COD','acled':'Democratic Republic of Congo','etype':'conflict','edate':'2022-03-01','commodity':'Cassava flour','admin':2},
-    'DR Congo (COVID-19)':  {'iso':'COD','acled':'Democratic Republic of Congo','etype':'pandemic','edate':'2020-03-10','commodity':'Cassava flour','admin':2},
-    'DR Congo (Ebola)':     {'iso':'COD','acled':'Democratic Republic of Congo','etype':'pandemic','edate':'2018-08-01','commodity':'Cassava flour','admin':2},
     'Ethiopia':     {'iso':'ETH','acled':'Ethiopia','etype':'conflict','edate':'2020-11-04','commodity':'Wheat','admin':2},
     'Gaza Strip':   {'iso':'PSE','acled':'Palestine','etype':'conflict','edate':'2023-10-07','commodity':'Bread','admin':2},
     'Haiti':        {'iso':'HTI','acled':'Haiti','etype':'conflict','edate':'2024-03-01','commodity':'Rice','admin':2},

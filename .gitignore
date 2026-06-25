@@ -27,3 +27,6 @@ Thumbs.db
 # Archives
 */_archive/
 .env
+# --- add these lines to .gitignore ---
+pilot_credentials.txt
+UNDP Dashboard.app/

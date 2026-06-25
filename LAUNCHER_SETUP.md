@@ -1,37 +1,37 @@
-# UNDP Dashboard — Launcher Setup
+# UNDP Dashboard — Download & Run (no terminal)
 
-These launchers fix three problems with the old ones:
-- they detect Python that is **already installed** (no forced reinstall),
-- they **skip installation** after the first run (instant re-open),
-- they run **without a Terminal/console window**.
+Goal: two downloadable launchers (Windows and Mac) that set up on first use and then
+run the app with **no terminal window**. The browser opens automatically.
 
-Put all launcher files in the **same folder as `app.py`** (the repo root,
-e.g. `undp-impact-evaluation-main`).
+All launcher files live in the **repo root, next to `app.py`**.
 
-## Windows
-1. Copy `Launch UNDP Dashboard.vbs` and `_undp_bootstrap.bat` into the repo folder.
-2. Double-click **`Launch UNDP Dashboard.vbs`**.
-   - First run: a small window shows setup progress, then the dashboard opens in the browser.
-   - Later runs: silent, no console window — opens straight to the dashboard.
-3. (Optional) Right-click the .vbs → Send to → Desktop (create shortcut) for a one-click icon.
+## Windows (single file)
+- File: **`UNDP Dashboard.vbs`**
+- Double-click it. First run shows a short "setting up" dialog, then the dashboard
+  opens in the browser. Later runs are instant and silent — no console window at all.
+- Prerequisite: Python 3.10+ (installer link is shown automatically if missing).
+- Optional: right-click → Send to → Desktop (create shortcut) for a one-click icon.
 
-Prerequisite: Python 3.10+ installed with "Add to PATH" ticked. If it is missing,
-the launcher shows a message with the download link.
+## Mac (build once, then a real .app)
+1. Double-click **`build_mac_app.command`** once. It creates **`UNDP Dashboard.app`**.
+   (If macOS blocks it: right-click → Open → Open.)
+2. From then on, double-click **`UNDP Dashboard.app`** — no Terminal window appears.
+3. Optional: drag the .app to the Dock.
+- Keep the .app inside the repo folder (it finds `app.py` as its parent folder).
+- Logs: `/tmp/undp_dashboard.log` for troubleshooting.
 
-## macOS
-1. Copy `run_dashboard.sh` and `UNDP Dashboard.applescript` into the repo folder.
-2. Compile the AppleScript into a no-Terminal app (run once in Terminal, from the repo folder):
-   ```
-   osacompile -o "UNDP Dashboard.app" "UNDP Dashboard.applescript"
-   ```
-3. Double-click **`UNDP Dashboard.app`**. No Terminal window appears; the browser opens
-   when ready (first run installs once; later runs are instant).
-   - Logs go to `/tmp/undp_dashboard.log` if you ever need to troubleshoot.
-4. (Optional) Drag `UNDP Dashboard.app` to the Dock for one-click access.
+## Credentials (pilot)
+So testers don't each have to paste keys:
+1. Copy `pilot_credentials.txt.EXAMPLE` to **`pilot_credentials.txt`** and fill in your keys.
+2. Include `pilot_credentials.txt` **only** in the private ZIP you send to testers.
+3. On first run, the launcher copies those keys to `~/.undp_dashboard/.env`, where the
+   app reads them. They persist across restarts.
 
-Note: keep the .app **inside the repo folder** — it locates `app.py` as its parent folder.
+**SECURITY — important:**
+- `pilot_credentials.txt` is **gitignored** and must **never** be committed (the repo is public).
+- When UNDP provides their own keys, replace the file. Each tester's machine keeps its own
+  copy in their home folder; nothing is shared.
 
 ## How "skip reinstall" works
-A marker file `.venv/.deps_installed` is written after the first successful install.
-While it exists, the launcher goes straight to running the app. Delete it to force a
-clean reinstall (e.g. after updating `requirements.txt`).
+After the first successful setup, `.venv/.deps_installed` is created. While it exists the
+launcher goes straight to running the app. Delete it to force a clean reinstall.
