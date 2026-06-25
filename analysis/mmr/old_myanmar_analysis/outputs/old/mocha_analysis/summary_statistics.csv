@@ -1,7 +1,0 @@
-impact_level,period,mean,std,count
-moderate,Post-Mocha,,,0
-moderate,Pre-Mocha,,,0
-primary,Post-Mocha,0.30180445526327404,0.12054870763466266,14
-primary,Pre-Mocha,0.3920039266347885,0.14212174899329913,10
-secondary,Post-Mocha,,,0
-secondary,Pre-Mocha,,,0

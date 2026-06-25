@@ -1,3 +1,0 @@
-month,date,filename,mean_nightlight,previous_mean,absolute_change,percent_change,issue
-Apr,2025-04-01,SVDNB_npp_20250401-20250430_global_vcmslcfg_v10_c202505141200.avg_rade9h.tif,0.7471469,0.6621606,0.08498633,12.834701,Unexpected increase after earthquake
-Aug,2025-08-01,SVDNB_npp_20250801-20250831_global_vcmslcfg_v10_c202509091100.avg_rade9h.tif,0.3966967,0.23740895,0.15928774,67.094246,Unexpected increase after earthquake

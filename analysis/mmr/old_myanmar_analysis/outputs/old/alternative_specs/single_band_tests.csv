@@ -1,6 +1,0 @@
-outcome,variable,n_valid,pct_valid,townships_5plus
-NIR (vegetation proxy),nir_mean,854,25.87878787878788,33
-SWIR1 (built-up proxy),swir1_mean,854,25.87878787878788,33
-RED (general brightness),red_mean,854,25.87878787878788,33
-NDVI (index),ndvi_mean,854,25.87878787878788,33
-NDBI (index),ndbi_mean,854,25.87878787878788,33
