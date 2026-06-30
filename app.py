@@ -1156,12 +1156,12 @@ if mode == "📊 View Results":
                     st.caption("Google search interest as proxy for public concern")
                     for f in trend_files:
                         st.markdown(f"**{f.stem.replace('trends_','').replace('_',' ').title()}**")
-                        st.image(str(f), width='stretch')
+                        safe_image(str(f), width='stretch')
                 ti += 1
 
             if undp_files:
                 with tabs[ti]:
-                    for f in undp_files: st.image(str(f), width='stretch')
+                    for f in undp_files: safe_image(str(f), width='stretch')
                 ti += 1
 
             if has_impact:
@@ -1172,7 +1172,7 @@ if mode == "📊 View Results":
                         for f in impact_files['maps']:
                             label = f.stem.replace('_clean','').replace('_three_panel','').replace('_',' ').title()
                             st.markdown(f"*{label}*")
-                            st.image(str(f), width='stretch')
+                            safe_image(str(f), width='stretch')
                         st.markdown("---")
                     if impact_files['coef_plots']:
                         st.markdown("**Buffer Zone Analysis — Treatment Effect by Distance**")
@@ -1180,11 +1180,11 @@ if mode == "📊 View Results":
                         cols = st.columns(n_cols)
                         for i, f in enumerate(impact_files['coef_plots']):
                             label = f.stem.replace('coef_plot_','').replace('_buffer','').replace('_',' ').title()
-                            with cols[i % n_cols]: st.image(str(f), caption=label, width='stretch')
+                            with cols[i % n_cols]: safe_image(str(f), caption=label, width='stretch')
                         st.markdown("---")
                     if impact_files['plots']:
                         st.markdown("**Difference-in-Differences Estimates**")
-                        for f in impact_files['plots']: st.image(str(f), width='stretch')
+                        for f in impact_files['plots']: safe_image(str(f), width='stretch')
                         st.markdown("---")
                     if impact_files['pretrends']:
                         st.markdown("**Pre-Trends Validation**")
@@ -1192,7 +1192,7 @@ if mode == "📊 View Results":
                         cols = st.columns(n_cols)
                         for i, f in enumerate(impact_files['pretrends']):
                             label = f.stem.replace('pretrends_','').replace('_baseline','').replace('_',' ').title()
-                            with cols[i % n_cols]: st.image(str(f), caption=label, width='stretch')
+                            with cols[i % n_cols]: safe_image(str(f), caption=label, width='stretch')
                         st.markdown("---")
                     if impact_files['tables']:
                         st.markdown("**Regression Results**")
@@ -1209,7 +1209,7 @@ if mode == "📊 View Results":
                     st.caption("Pre-Event, Post-Event, and Post-Intervention satellite imagery")
                     for ind, f in raster_pairs:
                         st.markdown(f"**{RASTER_NAMES.get(ind, ind.upper())}**")
-                        st.image(str(f), width='stretch')
+                        safe_image(str(f), width='stretch')
 
     # AI CO-PILOT IN SIDEBAR
     with st.sidebar:
