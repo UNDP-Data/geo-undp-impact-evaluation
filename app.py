@@ -887,7 +887,7 @@ if mode == "📊 View Results":
 
     has_scorecard = render_scorecard()
     if not has_scorecard:
-        st.info(f"Run the pipeline first: `make run COUNTRY={selected}`")
+        st.info("Run the pipeline first using the buttons under Setup & Run.")
 
     # UNDP PROGRAMME PICKER (between bars and methodology note)
     if has_scorecard:
@@ -1366,8 +1366,10 @@ elif mode == "⚙️ Setup & Run":
         with st.status(desc + "...", expanded=True) as s:
             try:
                 import time as _t
+                # cmd may be a list (cross-platform, preferred) or a string (legacy)
+                _shell = isinstance(cmd, str)
                 proc = subprocess.Popen(
-                    cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    cmd, shell=_shell, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     text=True, env=env, bufsize=1)
                 output_box = st.empty()
                 log = []
@@ -1380,20 +1382,27 @@ elif mode == "⚙️ Setup & Run":
                 if proc.returncode == 0:
                     s.update(label="Done: " + desc, state="complete")
                 else:
+                    # surface the real reason, not just a generic label
+                    tail = chr(10).join(log[-15:])
+                    st.error("Step failed: " + desc + ". Last output:" + chr(10) + tail)
                     s.update(label="Error: " + desc, state="error")
             except Exception as e:
                 st.error(str(e)[:300])
                 s.update(label="Error: " + desc, state="error")
 
+    _PY = sys.executable          # the venv's python — works on Windows and Mac
+    _cfg = f"config/{run_country}.yaml"
+    def _stage(stage):            # call the cross-platform runner (no `make` needed)
+        return [_PY, "run_pipeline.py", "--config", _cfg, "--stage", stage]
     steps = [
-        ("🗺️ Boundaries", f"make boundaries COUNTRY={run_country}"),
-        ("🛰️ Satellite",  f"make gee COUNTRY={run_country}"),
-        ("⚔️ Conflict",   f"make acled COUNTRY={run_country}"),
-        ("🏗️ UNDP",       f"make undp COUNTRY={run_country}"),
-        ("📈 Trends",     f"make gt COUNTRY={run_country}"),
-        ("🔧 Panel",      f"make preprocess COUNTRY={run_country}"),
-        ("📊 Visuals",    f"make visuals COUNTRY={run_country}"),
-        ("🎯 Scorecard",  f"python pipeline/recovery_scorecard.py --config config/{run_country}.yaml"),
+        ("🗺️ Boundaries", _stage("boundaries")),
+        ("🛰️ Satellite",  _stage("gee")),
+        ("⚔️ Conflict",   _stage("acled")),
+        ("🏗️ UNDP",       _stage("undp")),
+        ("📈 Trends",     _stage("gt")),
+        ("🔧 Panel",      _stage("preprocess")),
+        ("📊 Visuals",    _stage("visuals")),
+        ("🎯 Scorecard",  _stage("scorecard")),
     ]
     cols = st.columns(4)
     for i, (lb, cmd) in enumerate(steps):
@@ -1403,10 +1412,7 @@ elif mode == "⚙️ Setup & Run":
 
     st.markdown("")
     if st.button("▶️ Run Full Pipeline", width='stretch', type="primary", key="run_full"):
-        run_cmd(
-            f"make run COUNTRY={run_country} && python pipeline/recovery_scorecard.py --config config/{run_country}.yaml",
-            "Full Pipeline"
-        )
+        run_cmd(_stage("all"), "Full Pipeline")
         st.balloons()
 
     with st.expander("📝 Current Configuration"):

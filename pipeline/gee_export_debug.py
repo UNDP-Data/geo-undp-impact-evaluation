@@ -16,6 +16,8 @@ Usage:
 """
 
 import ee
+import os
+import json
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
@@ -48,13 +50,37 @@ class GEEExporterDebug:
         
         # Initialize GEE
         print("Initializing GEE...")
+        _gee_project = os.environ.get("GEE_PROJECT", "") or None
+        _sa_json = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "")
+        if not _sa_json:
+            for _cand in ["gee_service_account.json",
+                          os.path.join(os.path.expanduser("~"), ".undp_dashboard", "gee_service_account.json")]:
+                if os.path.exists(_cand):
+                    _sa_json = _cand
+                    break
         try:
-            ee.Initialize()
-            print("✓ GEE Initialized")
-        except:
-            print("Authenticating GEE...")
+            if _sa_json and os.path.exists(_sa_json):
+                with open(_sa_json) as _f:
+                    _sa_email = json.load(_f).get("client_email")
+                _creds = ee.ServiceAccountCredentials(_sa_email, _sa_json)
+                if _gee_project:
+                    ee.Initialize(_creds, project=_gee_project)
+                else:
+                    ee.Initialize(_creds)
+                print("✓ GEE Initialized (service account)")
+            else:
+                if _gee_project:
+                    ee.Initialize(project=_gee_project)
+                else:
+                    ee.Initialize()
+                print("✓ GEE Initialized")
+        except Exception as _e:
+            print("GEE init failed (" + str(_e) + "); trying interactive auth...")
             ee.Authenticate()
-            ee.Initialize()
+            if _gee_project:
+                ee.Initialize(project=_gee_project)
+            else:
+                ee.Initialize()
             print("✓ GEE Authenticated")
         
         # Load boundaries

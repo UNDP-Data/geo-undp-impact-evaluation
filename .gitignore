@@ -30,3 +30,4 @@ Thumbs.db
 # --- add these lines to .gitignore ---
 pilot_credentials.txt
 UNDP Dashboard.app/
+gee_service_account.json

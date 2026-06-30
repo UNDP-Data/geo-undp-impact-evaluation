@@ -51,7 +51,8 @@ def get_access_token(email: str, password: str):
         'username': email,
         'password': password,
         'grant_type': 'password',
-        'client_id': 'acled'
+        'client_id': 'acled',
+        'scope': 'authenticated'
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     
