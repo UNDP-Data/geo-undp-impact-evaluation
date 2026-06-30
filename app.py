@@ -1355,7 +1355,34 @@ elif mode == "⚙️ Setup & Run":
     st.markdown("---")
     st.markdown(f'<div class="section-title">Run Pipeline — {run_name}</div>', unsafe_allow_html=True)
 
+    LOCK_PATH = Path("/tmp/undp_pipeline.lock")
+    LOCK_STALE_SECONDS = 60 * 60  # a lock older than 1h is considered stale
+
+    def _lock_active():
+        import time as _t
+        if not LOCK_PATH.exists():
+            return False
+        try:
+            age = _t.time() - LOCK_PATH.stat().st_mtime
+            if age > LOCK_STALE_SECONDS:
+                LOCK_PATH.unlink(missing_ok=True)  # clear stale lock
+                return False
+            return True
+        except Exception:
+            return False
+
     def run_cmd(cmd, desc):
+        import time as _t
+        # --- single-job queue: only one pipeline runs at a time across all users ---
+        if _lock_active():
+            try:
+                who = LOCK_PATH.read_text().strip()
+            except Exception:
+                who = "another user"
+            st.warning("⏳ A pipeline is currently running (" + who + "). "
+                       "Only one analysis can run at a time. Please wait a few minutes "
+                       "and try again — your data and others' are kept separate and safe.")
+            return
         env = os.environ.copy()
         if acled_email: env['ACLED_EMAIL'] = acled_email
         if acled_key:
@@ -1363,9 +1390,12 @@ elif mode == "⚙️ Setup & Run":
             env['ACLED_PASSWORD'] = acled_key
         _gee = os.getenv('GEE_PROJECT', '')
         if _gee: env['GEE_PROJECT'] = _gee
+        try:
+            LOCK_PATH.write_text(f"{desc} since {_t.strftime('%H:%M')}")
+        except Exception:
+            pass
         with st.status(desc + "...", expanded=True) as s:
             try:
-                import time as _t
                 # cmd may be a list (cross-platform, preferred) or a string (legacy)
                 _shell = isinstance(cmd, str)
                 proc = subprocess.Popen(
@@ -1389,6 +1419,8 @@ elif mode == "⚙️ Setup & Run":
             except Exception as e:
                 st.error(str(e)[:300])
                 s.update(label="Error: " + desc, state="error")
+            finally:
+                LOCK_PATH.unlink(missing_ok=True)   # release the queue lock
 
     _PY = sys.executable          # the venv's python — works on Windows and Mac
     _cfg = f"config/{run_country}.yaml"
