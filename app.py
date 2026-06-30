@@ -85,12 +85,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─── CONSTANTS ───────────────────────────────────────────────────────────────
+# ISO3 -> ISO2 for common country codes (extend as needed)
+_ISO3_TO_ISO2 = {
+    'VEN':'VE','MMR':'MM','PSE':'PS','AFG':'AF','UKR':'UA','SDN':'SD','SYR':'SY',
+    'COD':'CD','SOM':'SO','NPL':'NP','JAM':'JM','MWI':'MW','COL':'CO','IDN':'ID',
+    'BOL':'BO','NGA':'NG','KEN':'KE','ETH':'ET','TCD':'TD','HTI':'HT','YEM':'YE',
+    'LBN':'LB','IRQ':'IQ','MLI':'ML','NER':'NE','BFA':'BF','MOZ':'MZ','ZWE':'ZW',
+}
 def iso_to_flag(code):
-    try:
-        import pycountry
-        c2 = pycountry.countries.get(alpha_3=code.upper())
-        if c2: return ''.join(chr(0x1F1E6 + ord(ch) - ord('A')) for ch in c2.alpha_2)
-    except Exception: pass
+    if not code: return '🌐'
+    c = code.upper()
+    iso2 = _ISO3_TO_ISO2.get(c, c[:2] if len(c) == 2 else None)
+    if iso2 and len(iso2) == 2 and iso2.isalpha():
+        try:
+            return ''.join(chr(0x1F1E6 + ord(ch) - ord('A')) for ch in iso2)
+        except Exception:
+            pass
     return '🌐'
 
 COUNTRIES = {
