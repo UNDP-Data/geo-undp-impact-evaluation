@@ -13,7 +13,7 @@ v15: Clean rewrite with all fixes:
 
 import streamlit as st
 import streamlit.components.v1 as components
-import yaml, subprocess, os, glob
+import yaml, subprocess, os, glob, sys
 from pathlib import Path
 from datetime import date
 from dotenv import load_dotenv
