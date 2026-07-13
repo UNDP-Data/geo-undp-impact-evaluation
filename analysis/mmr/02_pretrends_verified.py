@@ -110,7 +110,7 @@ def main():
     if gdf.crs != "EPSG:4326":
         gdf = gdf.to_crs("EPSG:4326")
     
-    id_col = next((c for c in gdf.columns if 'pcode' in c.lower()), None)
+    id_col = next((c for c in gdf.columns if 'pcode' in c.lower() or c == 'shapeID'), None)
     if id_col is None:
         print("  ❌ No pcode column found in boundaries")
         return
