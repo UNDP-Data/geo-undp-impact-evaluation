@@ -13,7 +13,7 @@ v15: Clean rewrite with all fixes:
 
 import streamlit as st
 import streamlit.components.v1 as components
-import yaml, subprocess, os, glob, sys
+import yaml, subprocess, os, glob, sys, shutil, json, time
 from pathlib import Path
 from datetime import date
 from dotenv import load_dotenv
@@ -40,6 +40,92 @@ def safe_image(path, **kwargs):
     except Exception:
         st.caption("(figure could not be displayed)")
         return False
+
+
+# ─── MULTI-USER WORKSPACES ─────────────────────────────────────────────────
+# Each user gets an isolated, copy-on-write view of config/data/outputs.
+# Shared (pre-built) countries stay read-only until a user edits or re-runs
+# them, at which point that user's edit is cloned into their own workspace
+# and every subsequent read for that country prefers the user's copy.
+# Nothing about this is visible in the UI — countries are never renamed
+# with a username suffix; the fork happens silently in the background.
+REPO_ROOT = Path(__file__).resolve().parent
+WORKSPACES_ROOT = Path.home() / ".undp_dashboard" / "workspaces"
+USERS_REGISTRY = Path.home() / ".undp_dashboard" / "users.json"
+
+
+def _load_users():
+    try:
+        return sorted(json.loads(USERS_REGISTRY.read_text()))
+    except Exception:
+        return []
+
+
+def _register_user(name):
+    users = set(_load_users())
+    if name not in users:
+        users.add(name)
+        try:
+            USERS_REGISTRY.parent.mkdir(parents=True, exist_ok=True)
+            USERS_REGISTRY.write_text(json.dumps(sorted(users)))
+        except Exception:
+            pass
+
+
+def user_workspace_root():
+    """This user's private workspace. Also the cwd used for pipeline runs,
+    so it carries symlinks to the shared, read-only pipeline/ code."""
+    name = st.session_state.get("username", "_shared")
+    r = WORKSPACES_ROOT / name
+    (r / "config").mkdir(parents=True, exist_ok=True)
+    (r / "data").mkdir(parents=True, exist_ok=True)
+    (r / "outputs").mkdir(parents=True, exist_ok=True)
+    for shared_name in ("pipeline", "run_pipeline.py"):
+        link = r / shared_name
+        if not link.exists():
+            try:
+                link.symlink_to(REPO_ROOT / shared_name)
+            except Exception:
+                pass
+    return r
+
+
+def resolve_config_path(name, for_write=False):
+    """Path to a country's config. Reads prefer the user's own edited copy,
+    falling back to the shared one. Writes always land in (and first
+    copy-on-write clone into) the user's own copy."""
+    shared = REPO_ROOT / "config" / (name + ".yaml")
+    user_path = user_workspace_root() / "config" / (name + ".yaml")
+    if for_write:
+        user_path.parent.mkdir(parents=True, exist_ok=True)
+        if not user_path.exists() and shared.exists():
+            shutil.copy2(shared, user_path)
+        return user_path
+    return user_path if user_path.exists() else shared
+
+
+def resolve_dir(kind, code_, for_write=False):
+    """Path to a country's data/ or outputs/ folder, same copy-on-write
+    semantics as resolve_config_path. `kind` is 'data' or 'outputs'."""
+    shared = REPO_ROOT / kind / code_
+    user_path = user_workspace_root() / kind / code_
+    if for_write:
+        if not user_path.exists():
+            if shared.exists():
+                shutil.copytree(shared, user_path)
+            else:
+                user_path.mkdir(parents=True, exist_ok=True)
+        return user_path
+    return user_path if user_path.exists() else shared
+
+
+def all_visible_config_names():
+    """Shared countries plus this user's own additions, merged, no dupes,
+    no username tags — exactly what the dropdown should show."""
+    shared = {Path(p).stem for p in glob.glob(str(REPO_ROOT / "config" / "*.yaml"))}
+    own = {Path(p).stem for p in glob.glob(str(user_workspace_root() / "config" / "*.yaml"))}
+    return sorted(shared | own)
+
 
 st.set_page_config(page_title="UNDP Early Recovery Impact", page_icon="🌍",
                    layout="wide", initial_sidebar_state="expanded")
@@ -83,6 +169,47 @@ st.markdown("""
     header[data-testid="stHeader"] { background: #0d1117; }
 </style>
 """, unsafe_allow_html=True)
+
+# ─── USERNAME GATE ───────────────────────────────────────────────────────────
+# Lightweight, no-password workspace picker for the pilot. Every distinct
+# name gets its own isolated copy-on-write workspace (see resolve_config_path
+# / resolve_dir above); nothing here is a real login and it should not be
+# treated as one.
+if "username" not in st.session_state:
+    st.markdown("""
+    <div class="hero">
+        <h1>UNDP Early Recovery Impact</h1>
+        <p>Enter your name to continue. This keeps your changes separate from everyone else's.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    _known_users = _load_users()
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Continue as an existing user**")
+        if _known_users:
+            _pick_user = st.selectbox("Existing users", _known_users,
+                                       key="pick_existing_user", label_visibility="collapsed")
+            if st.button("Continue", key="continue_existing", width='stretch'):
+                st.session_state.username = _pick_user
+                st.rerun()
+        else:
+            st.caption("No users yet — create the first one on the right.")
+    with c2:
+        st.markdown("**Or create a new user**")
+        _new_user = st.text_input("New username", key="new_username_input",
+                                   label_visibility="collapsed", placeholder="e.g. carlo, joelle...")
+        if st.button("Create & continue", key="create_user", width='stretch', type="primary"):
+            _clean = "".join(ch for ch in _new_user.strip().lower().replace(" ", "_")
+                              if ch.isalnum() or ch in "_-")
+            if not _clean:
+                st.error("Please enter a valid name (letters, numbers, - or _).")
+            else:
+                _register_user(_clean)
+                st.session_state.username = _clean
+                st.rerun()
+    st.stop()
+
+USERNAME = st.session_state.username
 
 # ─── CONSTANTS ───────────────────────────────────────────────────────────────
 # ISO3 -> ISO2 for common country codes (extend as needed)
@@ -318,6 +445,13 @@ st.markdown("""
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
+    _uc1, _uc2 = st.columns([3, 1])
+    with _uc1:
+        st.caption("Signed in as **" + USERNAME + "**")
+    with _uc2:
+        if st.button("Switch", key="switch_user_btn", help="Switch to a different user"):
+            del st.session_state["username"]
+            st.rerun()
     # Admin/User mode
     is_admin = st.toggle("Admin Mode", value=False, key="admin_toggle")
     if is_admin:
@@ -327,8 +461,7 @@ with st.sidebar:
     mode = st.radio("Mode", _modes, label_visibility="collapsed", key="main_mode")
     st.markdown("---")
 
-    cfg_files = sorted(glob.glob("config/*.yaml"))
-    cfg_names = [Path(f).stem for f in cfg_files]
+    cfg_names = all_visible_config_names()
 
     if mode == "📊 View Results":
         st.markdown("#### 🌍 Select Country")
@@ -340,7 +473,7 @@ with st.sidebar:
         selected = st.selectbox("Country", cfg_names, index=_def_idx,
                                 format_func=lambda n: f"{COUNTRIES.get(n,{}).get('flag', iso_to_flag(n))}  {COUNTRIES.get(n,{}).get('name', n.replace('_',' ').title())}",
                                 label_visibility="collapsed")
-        with open(f"config/{selected}.yaml") as f:
+        with open(resolve_config_path(selected)) as f:
             config = yaml.safe_load(f)
         ci = COUNTRIES.get(selected, {})
         st.markdown(f'<div class="country-card"><span style="font-size:1.5rem;margin-right:.4rem;">{ci.get("flag", iso_to_flag(selected))}</span><span class="country-name">{config["country_name"]}</span><div class="country-detail">{ci.get("event","")} · {ci.get("event_date", config["events"]["disaster_date"])}</div></div>', unsafe_allow_html=True)
@@ -351,7 +484,7 @@ with st.sidebar:
         if cfg_names:
             _auto = st.session_state.pop("auto_select_country", None)
             selected = _auto if _auto and _auto in cfg_names else cfg_names[0]
-            with open(f"config/{selected}.yaml") as f:
+            with open(resolve_config_path(selected)) as f:
                 config = yaml.safe_load(f)
         else:
             selected = "none"
@@ -363,8 +496,8 @@ with st.sidebar:
 
 # ─── SHARED VARIABLES ────────────────────────────────────────────────────────
 code = config['country_code'].lower()
-figures_dir = Path(f"outputs/{code}/figures")
-output_dir = Path(f"outputs/{code}")
+output_dir = resolve_dir("outputs", code)
+figures_dir = output_dir / "figures"
 results_dir = output_dir / "results"
 panel_path = output_dir / "panel_data.csv"
 panel_info = ""
@@ -419,9 +552,9 @@ POP_M = {
 
 def load_wb_data(code, event_year):
     """Load World Bank GDP and population data. Returns dict with pre-shock values."""
-    wb_path = Path("data/" + code + "/external/wb_indicators.csv")
+    wb_path = resolve_dir("data", code) / "external" / "wb_indicators.csv"
     if not wb_path.exists():
-        wb_path = Path("outputs/" + code + "/external/wb_indicators.csv")
+        wb_path = resolve_dir("outputs", code) / "external" / "wb_indicators.csv"
     result = {"gdp": 0, "gdp_pc": 0, "pop": 0, "year": 0, "source": "N/A"}
     if not wb_path.exists():
         # Fallback to hardcoded
@@ -460,8 +593,8 @@ def render_copilot_sidebar(config, figures_dir, code):
             ctx.append("  " + str(nm) + ": overall " + str(round(r.get("overall_recovery_pct", 0))) + "%, "
                        + "since project " + str(round(r.get("undp_recovery_pct", 0))) + "%, "
                        + str(int(r.get("n_affected_units", 0))) + "/" + str(int(r.get("n_total_units", 0))) + " units")
-    undp_csv = Path("data/" + code + "/external/undp_projects.csv")
-    if not undp_csv.exists(): undp_csv = Path("outputs/" + code + "/external/undp_projects.csv")
+    undp_csv = resolve_dir("data", code) / "external" / "undp_projects.csv"
+    if not undp_csv.exists(): undp_csv = resolve_dir("outputs", code) / "external" / "undp_projects.csv"
     if undp_csv.exists():
         udf = pd.read_csv(undp_csv)
         ctx.append("UNDP projects: " + str(len(udf)))
@@ -469,8 +602,8 @@ def render_copilot_sidebar(config, figures_dir, code):
             ctx.append("Total budget: $" + "{:,.0f}".format(udf["total_budget"].sum()))
     # Load monthly time series from panel data for richer analysis
     panel_paths = [
-        Path("outputs/" + code + "/panel_data.csv"),
-        Path("data/" + code + "/gee_panel_" + code + "_centroid.csv"),
+        resolve_dir("outputs", code) / "panel_data.csv",
+        resolve_dir("data", code) / ("gee_panel_" + code + "_centroid.csv"),
     ]
     for pp in panel_paths:
         if pp.exists():
@@ -643,7 +776,7 @@ def estimate_economic_reactivation(config, figures_dir, code):
     Uses ONLY nightlights for GDP conversion (other indicators don't have GDP elasticity).
     Ties estimates to the currently selected project."""
     scorecard_csv = figures_dir / "scorecard_data.csv"
-    undp_csv = Path(f"data/{code}/external/undp_projects.csv")
+    undp_csv = resolve_dir("data", code) / "external" / "undp_projects.csv"
     if not scorecard_csv.exists() or not undp_csv.exists():
         return None
     sc = pd.read_csv(scorecard_csv)
@@ -861,9 +994,9 @@ def render_scorecard():
 if mode == "📊 View Results":
         # SCORECARD (bars only — note rendered after UNDP picker)
     # UNDP PROJECT SELECTOR
-    _undp_p = Path("data/" + code + "/external/undp_projects.csv")
+    _undp_p = resolve_dir("data", code) / "external" / "undp_projects.csv"
     if not _undp_p.exists():
-        _undp_p = Path("outputs/" + code + "/external/undp_projects.csv")
+        _undp_p = resolve_dir("outputs", code) / "external" / "undp_projects.csv"
     if _undp_p.exists():
         try:
             _udf = pd.read_csv(_undp_p)
@@ -887,10 +1020,14 @@ if mode == "📊 View Results":
                     _nint = _opts[_pick]['date']
                     if _nint != _cur:
                         config['events']['intervention_start'] = _nint
-                        with open("config/" + selected + ".yaml", 'w') as _fw:
+                        _cfg_write_path = resolve_config_path(selected, for_write=True)
+                        resolve_dir("data", code, for_write=True)      # ensure user has own copy to read/write
+                        resolve_dir("outputs", code, for_write=True)   # (cloned from shared on first touch)
+                        with open(_cfg_write_path, 'w') as _fw:
                             yaml.dump(config, _fw, default_flow_style=False, sort_keys=False)
-                        subprocess.run("python pipeline/recovery_scorecard.py --config config/" + selected + ".yaml",
-                            shell=True, capture_output=True, timeout=60)
+                        subprocess.run(
+                            [sys.executable, "pipeline/recovery_scorecard.py", "--config", str(_cfg_write_path)],
+                            cwd=str(user_workspace_root()), capture_output=True, timeout=60)
                         st.rerun()
         except Exception:
             pass
@@ -901,7 +1038,7 @@ if mode == "📊 View Results":
 
     # UNDP PROGRAMME PICKER (between bars and methodology note)
     if has_scorecard:
-        undp_csv = Path(f"data/{code}/external/undp_projects.csv")
+        undp_csv = resolve_dir("data", code) / "external" / "undp_projects.csv"
         # UNDP picker moved above scorecard
 
     # METHODOLOGY & DISCLAIMERS
@@ -920,9 +1057,9 @@ if mode == "📊 View Results":
 
     # INDICATIVE ECONOMIC REACTIVATION
     if has_scorecard:
-        _undp_path = Path("data/" + code + "/external/undp_projects.csv")
+        _undp_path = resolve_dir("data", code) / "external" / "undp_projects.csv"
         if not _undp_path.exists():
-            _undp_path = Path("outputs/" + code + "/external/undp_projects.csv")
+            _undp_path = resolve_dir("outputs", code) / "external" / "undp_projects.csv"
         if _undp_path.exists():
             try:
                 _undp = pd.read_csv(_undp_path)
@@ -1090,15 +1227,15 @@ if mode == "📊 View Results":
         import base64 as _b64
         _logos_dir = Path("logos")
         _row1 = [
-            ("undp.png", "UNDP Projects", f"data/{code}/external/undp_projects.csv"),
-            ("nasa.png", "Nightlights (VIIRS)", f"data/{code}/gee_panel_{code}_centroid.csv"),
-            ("esa.png", "Radar (Sentinel-1)", f"data/{code}/gee_panel_{code}_centroid.csv"),
-            ("acled.png", "Conflict (ACLED)", f"data/{code}/external/acled_conflict.csv"),
+            ("undp.png", "UNDP Projects", str(resolve_dir("data", code) / "external" / "undp_projects.csv")),
+            ("nasa.png", "Nightlights (VIIRS)", str(resolve_dir("data", code) / f"gee_panel_{code}_centroid.csv")),
+            ("esa.png", "Radar (Sentinel-1)", str(resolve_dir("data", code) / f"gee_panel_{code}_centroid.csv")),
+            ("acled.png", "Conflict (ACLED)", str(resolve_dir("data", code) / "external" / "acled_conflict.csv")),
         ]
         _row2 = [
-            ("google.png", "Google Trends", f"data/{code}/external/google_trends.csv"),
-            ("chc.png", "Rainfall (CHIRPS)", f"data/{code}/gee_panel_{code}_centroid.csv"),
-            ("wfp.png", "Food Prices (WFP)", f"data/{code}/external/wfp_prices.csv"),
+            ("google.png", "Google Trends", str(resolve_dir("data", code) / "external" / "google_trends.csv")),
+            ("chc.png", "Rainfall (CHIRPS)", str(resolve_dir("data", code) / f"gee_panel_{code}_centroid.csv")),
+            ("wfp.png", "Food Prices (WFP)", str(resolve_dir("data", code) / "external" / "wfp_prices.csv")),
         ]
         def _make_chip(logo, label, fpath):
             pp = Path(fpath); ok = pp.exists()
@@ -1263,10 +1400,10 @@ elif mode == "⚙️ Setup & Run":
         ref = QUICK_REF[pick]
         cc = ref['iso'].lower()
         setup_country_code = cc
-        existing = Path(f"config/{cc}.yaml").exists()
+        existing = resolve_config_path(cc).exists()
 
         if existing:
-            with open(f"config/{cc}.yaml") as _f:
+            with open(resolve_config_path(cc)) as _f:
                 ex = yaml.safe_load(_f)
             d_etype = ex.get('events',{}).get('disaster_type', ref['etype'])
             d_edate = ex.get('events',{}).get('disaster_date', ref['edate'])
@@ -1316,11 +1453,11 @@ elif mode == "⚙️ Setup & Run":
                     'refugee': 'refugee', etype: etype,
                 },
             }
-            Path("config").mkdir(exist_ok=True)
-            with open(f"config/{cc}.yaml", 'w') as f_out:
+            _save_path = resolve_config_path(cc, for_write=True)
+            with open(_save_path, 'w') as f_out:
                 yaml.dump(nc, f_out, default_flow_style=False, sort_keys=False)
             st.session_state.auto_select_country = cc
-            st.success(f"✅ Saved `config/{cc}.yaml`")
+            st.success(f"✅ Saved configuration for {pick}")
             st.rerun()
 
     # CREDENTIALS
@@ -1410,7 +1547,7 @@ elif mode == "⚙️ Setup & Run":
                 _shell = isinstance(cmd, str)
                 proc = subprocess.Popen(
                     cmd, shell=_shell, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    text=True, env=env, bufsize=1)
+                    text=True, env=env, bufsize=1, cwd=str(user_workspace_root()))
                 output_box = st.empty()
                 log = []
                 for line in iter(proc.stdout.readline, ""):
@@ -1433,7 +1570,13 @@ elif mode == "⚙️ Setup & Run":
                 LOCK_PATH.unlink(missing_ok=True)   # release the queue lock
 
     _PY = sys.executable          # the venv's python — works on Windows and Mac
-    _cfg = f"config/{run_country}.yaml"
+    # run_code is the actual country code (e.g. "ven"); prefer the code tied to
+    # run_country specifically, since it can differ from the page's fallback `code`.
+    run_code = setup_country_code or code
+    _cfg_obj = resolve_config_path(run_country, for_write=True)   # user's own writable config
+    resolve_dir("data", run_code, for_write=True)                 # cloned from shared on first touch
+    resolve_dir("outputs", run_code, for_write=True)
+    _cfg = str(_cfg_obj)
     def _stage(stage):            # call the cross-platform runner (no `make` needed)
         return [_PY, "run_pipeline.py", "--config", _cfg, "--stage", stage]
     steps = [
