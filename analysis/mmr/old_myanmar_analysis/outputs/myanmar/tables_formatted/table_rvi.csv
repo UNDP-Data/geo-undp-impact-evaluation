@@ -1,0 +1,16 @@
+TABLE 4: RADAR VEGETATION (RVI),,,,,,
+Specification,"Spatial 25km
+(Raw)","Spatial 25km
+(Rain)","Spatial 50km
+(Raw)","Spatial 50km
+(Rain)","Donut (15-50km)
+(Raw)","Donut (15-50km)
+(Rain)"
+Treated x Post,0.0053,-0.0029,0.0110**,0.0009,0.0200***,0.0052
+,(0.0049),(0.0045),(0.0051),(0.0044),(0.0077),(0.0058)
+Rainfall Control,No,Yes,No,Yes,No,Yes
+Conflict Control,No,No,No,No,No,No
+Township FE,Yes,Yes,Yes,Yes,Yes,Yes
+Time FE,Yes,Yes,Yes,Yes,Yes,Yes
+Observations,"1,920","1,920","2,340","2,340","1,332","1,332"
+R-Squared,0.001,0.040,0.003,0.049,0.010,0.063

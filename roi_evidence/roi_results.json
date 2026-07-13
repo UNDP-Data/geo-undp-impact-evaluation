@@ -1,0 +1,112 @@
+{
+  "method": "affected_area_GDP * nightlight_recovery * elasticity(0.3); BCR vs post-event budget",
+  "elasticity": 0.3,
+  "confidence_tiers": {
+    "CAUSAL": "difference-in-differences vs matched controls (Myanmar)",
+    "SECTOR": "significant sector-level effect (Gaza employment)",
+    "CORRELATIONAL": "pre-post recovery during UNDP engagement (others)"
+  },
+  "country_results": [
+    {
+      "code": "mmr",
+      "country": "Myanmar",
+      "tier": "CAUSAL",
+      "nightlight_recovery_pct": 68.7,
+      "gdp_impact_pct": 20.6,
+      "affected_share_pct": 98.0,
+      "affected_area_gdp_usd": 65748484848,
+      "gdp_reactivation_usd": 13550762727,
+      "undp_post_event_budget_usd": 1200000,
+      "indicative_bcr": 11292.3,
+      "note": "Affected-area reactivation reflects ALL actors; BCR indicative/correlational unless tier=CAUSAL"
+    },
+    {
+      "code": "syr",
+      "country": "Syria",
+      "tier": "CORRELATIONAL",
+      "nightlight_recovery_pct": 100.0,
+      "gdp_impact_pct": 30.0,
+      "affected_share_pct": 49.0,
+      "affected_area_gdp_usd": 4400735294,
+      "gdp_reactivation_usd": 1320220588,
+      "undp_post_event_budget_usd": 98300000,
+      "indicative_bcr": 13.4,
+      "note": "Affected-area reactivation reflects ALL actors; BCR indicative/correlational unless tier=CAUSAL"
+    },
+    {
+      "code": "cod",
+      "country": "DR Congo",
+      "tier": "CORRELATIONAL",
+      "nightlight_recovery_pct": 100.0,
+      "gdp_impact_pct": 30.0,
+      "affected_share_pct": 97.0,
+      "affected_area_gdp_usd": 53544973545,
+      "gdp_reactivation_usd": 16063492063,
+      "undp_post_event_budget_usd": 250900000,
+      "indicative_bcr": 64.0,
+      "note": "Affected-area reactivation reflects ALL actors; BCR indicative/correlational unless tier=CAUSAL"
+    },
+    {
+      "code": "ukr",
+      "country": "Ukraine",
+      "tier": "CORRELATIONAL",
+      "nightlight_recovery_pct": 48.0,
+      "gdp_impact_pct": 14.4,
+      "affected_share_pct": 100.0,
+      "affected_area_gdp_usd": 199595959596,
+      "gdp_reactivation_usd": 28741818182,
+      "undp_post_event_budget_usd": 970800000,
+      "indicative_bcr": 29.6,
+      "note": "Affected-area reactivation reflects ALL actors; BCR indicative/correlational unless tier=CAUSAL"
+    },
+    {
+      "code": "afg",
+      "country": "Afghanistan",
+      "tier": "CORRELATIONAL",
+      "nightlight_recovery_pct": 100.0,
+      "gdp_impact_pct": 30.0,
+      "affected_share_pct": 88.0,
+      "affected_area_gdp_usd": 12611859296,
+      "gdp_reactivation_usd": 3783557789,
+      "undp_post_event_budget_usd": 97300000,
+      "indicative_bcr": 38.9,
+      "note": "Affected-area reactivation reflects ALL actors; BCR indicative/correlational unless tier=CAUSAL"
+    }
+  ],
+  "myanmar_did_range_pct": [
+    30,
+    55
+  ],
+  "gaza_sectors": {
+    "Employment/cash-for-work": {
+      "nl": 11.76,
+      "gdp": 3.53,
+      "sig": "p<0.001",
+      "significant": true
+    },
+    "Debris": {
+      "nl": -3.74,
+      "gdp": -1.12,
+      "sig": "p<0.05 (negative)",
+      "significant": false
+    },
+    "Shelter": {
+      "nl": -0.98,
+      "gdp": -0.29,
+      "sig": "n.s.",
+      "significant": false
+    },
+    "WASH": {
+      "nl": -2.45,
+      "gdp": -0.73,
+      "sig": "n.s.",
+      "significant": false
+    }
+  },
+  "gaza_employment": {
+    "beneficiaries_500m": 54204,
+    "gdp_per_capita_assumption": 1122,
+    "affected_area_gdp_usd": 60816888,
+    "reactivation_usd_per_year": 2146836
+  }
+}

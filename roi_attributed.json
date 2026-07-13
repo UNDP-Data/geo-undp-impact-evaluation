@@ -1,0 +1,29 @@
+{
+  "myanmar": {
+    "did_pct": [
+      30,
+      55
+    ],
+    "beneficiaries": 3500000,
+    "gdp_per_capita": 1122,
+    "budget_total_active": 16800000.0,
+    "budget_earthquake_only": 1215388,
+    "gdp_gain_usd": [
+      353430000,
+      647955000
+    ],
+    "roi_per_dollar": [
+      21,
+      39
+    ]
+  },
+  "gaza": {
+    "emp_gdp_pct": 3.53,
+    "beneficiaries_satellite": 54204,
+    "gdp_per_capita": 1122,
+    "emp_budget_usd": 12500000.0,
+    "gdp_gain_usd_per_year": 2146836,
+    "roi_per_dollar_per_year": 0.17
+  },
+  "elasticity": 0.3
+}

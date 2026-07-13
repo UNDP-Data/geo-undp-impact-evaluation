@@ -1,0 +1,75 @@
+================================================================================
+NIGHTLIGHT DATA DIAGNOSTIC REPORT
+================================================================================
+
+Generated: 2025-11-07 11:57:22
+Data period: 2025-01 to 2025-09
+Number of months: 9
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+Jan      (2025-01):  Mean=0.488117, Median=0.210000, Valid=100.0%
+Feb      (2025-02):  Mean=0.575260, Median=0.310000, Valid=100.0%
+Mar      (2025-03):  Mean=0.662161, Median=0.360000, Valid=100.0%
+Apr      (2025-04):  Mean=0.747147, Median=0.500000, Valid=100.0%
+May      (2025-05):  Mean=0.584367, Median=0.460000, Valid=100.0%
+Jun      (2025-06):  Mean=0.345823, Median=0.260000, Valid=100.0%
+Jul      (2025-07):  Mean=0.237409, Median=0.150000, Valid=100.0%
+Aug      (2025-08):  Mean=0.396697, Median=0.220000, Valid=100.0%
+Sep      (2025-09):  Mean=0.381878, Median=0.370000, Valid=100.0%
+
+================================================================================
+DETECTED ANOMALIES
+================================================================================
+
+⚠ FOUND 2 ANOMALIES:
+
+  • Apr: Unexpected increase after earthquake
+    Mean nightlight: 0.747147
+    Previous month: 0.662161
+    Change: +0.084986 (+12.83%)
+    File: SVDNB_npp_20250401-20250430_global_vcmslcfg_v10_c202505141200.avg_rade9h.tif
+
+  • Aug: Unexpected increase after earthquake
+    Mean nightlight: 0.396697
+    Previous month: 0.237409
+    Change: +0.159288 (+67.09%)
+    File: SVDNB_npp_20250801-20250831_global_vcmslcfg_v10_c202509091100.avg_rade9h.tif
+
+================================================================================
+SPATIAL ALIGNMENT ISSUES
+================================================================================
+
+✓ No alignment issues detected
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+Based on detected anomalies, we recommend:
+
+1. CHECK FILE DATES:
+   - Verify VIIRS file names match actual observation periods
+   - Check if files are labeled by processing date vs observation date
+   - Contact data provider to confirm date conventions
+
+2. VERIFY MONTH ASSIGNMENT:
+   - Double-check month parsing logic in code
+   - Ensure March 2025 file contains March observations (not April)
+   - Check for off-by-one errors in date indexing
+
+3. INSPECT RAW FILES:
+   - Open suspect files in QGIS/ArcGIS to visually inspect
+   - Check file metadata for actual date range
+   - Compare with known ground truth events
+
+4. CONSIDER ALTERNATIVE EXPLANATIONS:
+   - Emergency response lights (generators, rescue operations)
+   - Population displacement to lit urban areas
+   - But these wouldn't explain INCREASE above pre-earthquake
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -1,0 +1,52 @@
+# =============================================================================
+# DONOR DATA TARGETS (add to existing Makefile)
+# =============================================================================
+
+# Download all donor data for SC analysis
+donors: 
+	@echo "=== Downloading Donor Data for SC Analysis ==="
+	python -m pipeline.donor_data_download --data all
+
+# Download WFP prices for Jordan/Lebanon/Egypt
+donors-wfp:
+	@echo "--- WFP Prices (Donor Countries) ---"
+	python -m pipeline.donor_data_download --data wfp
+
+# Download Google Trends for Jordan/Lebanon/Egypt
+donors-trends:
+	@echo "--- Google Trends (Donor Countries) ---"
+	@echo "Note: Requires pytrends package"
+	python -m pipeline.donor_data_download --data trends
+
+# Download ACLED conflict for Jordan/Lebanon/Egypt
+donors-acled:
+	@echo "--- ACLED Conflict (Donor Countries) ---"
+	@echo "Note: Requires ACLED_EMAIL and ACLED_KEY environment variables"
+	python -m pipeline.donor_data_download --data acled
+
+# Combine all donor data into full donor pool
+donors-combine:
+	@echo "--- Combining Donor Data ---"
+	python -m pipeline.donor_data_download --data combine
+
+# Full SC analysis with all available outcomes
+sc-full: donors sc
+	@echo "✓ Full SC analysis complete"
+
+# Conflict-driven counterfactual analysis (no donor data needed!)
+conflict-cf:
+	@echo "--- Conflict-Driven Counterfactual Analysis ---"
+	python analysis/pse/05_conflict_counterfactual.py
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+#
+# Option A: Conflict Counterfactual (NO donor data needed - recommended!)
+#    make conflict-cf COUNTRY=gaza
+#
+# Option B: Traditional SC with donor data
+#    1. Download donor data: make donors
+#    2. Run SC: make sc COUNTRY=gaza
+#
+# =============================================================================

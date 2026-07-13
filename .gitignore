@@ -31,3 +31,17 @@ Thumbs.db
 pilot_credentials.txt
 UNDP Dashboard.app/
 gee_service_account.json
+
+# From GITIGNORE_ADD.txt (2026-07-13)
+pilot_credentials.txt
+UNDP Dashboard.app/
+gee_service_account.json
+
+# Bulk geodata safety net (keep code, not rasters/archives)
+*.tif
+*.tiff
+*.zip
+*.shp
+*.shx
+*.dbf
+*.Rhistory

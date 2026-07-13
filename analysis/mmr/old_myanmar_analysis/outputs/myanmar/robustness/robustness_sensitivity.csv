@@ -1,0 +1,34 @@
+Outcome,Specification,Coeff,SE,Obs,R2
+nightlights,Control: Dist to Epicenter,0.6277,(0.7526),1944,0.192
+nightlights,Intensity (Project Count),0.5950***,(0.1609),1944,0.051
+nightlights,Spillover Effects,10.6742***,(3.1904),1944,0.151
+log_nightlights,Control: Dist to Epicenter,0.0141,(0.0912),1944,0.225
+log_nightlights,Intensity (Project Count),0.0481***,(0.0167),1944,0.082
+log_nightlights,Spillover Effects,0.9955***,(0.2723),1944,0.165
+ndvi,Control: Dist to Epicenter,0.0059,(0.0075),1709,0.014
+ndvi,Intensity (Project Count),0.0038***,(0.0009),1709,0.021
+ndvi,Spillover Effects,0.0056,(0.0084),1709,0.013
+rvi,Control: Dist to Epicenter,-0.0044,(0.0040),1944,0.039
+rvi,Intensity (Project Count),0.0010,(0.0009),1944,0.039
+rvi,Spillover Effects,-0.0031,(0.0084),1944,0.039
+ndbi,Control: Dist to Epicenter,0.0005,(0.0042),1709,0.007
+ndbi,Intensity (Project Count),-0.0010,(0.0007),1709,0.005
+ndbi,Spillover Effects,-0.0038,(0.0070),1709,0.004
+r_ndbi,Control: Dist to Epicenter,0.0022,(0.0020),1944,0.039
+r_ndbi,Intensity (Project Count),-0.0005,(0.0005),1944,0.039
+r_ndbi,Spillover Effects,0.0016,(0.0042),1944,0.039
+rainfall,Control: Dist to Epicenter,-0.0000,(0.0000),1944,1.000
+rainfall,Intensity (Project Count),-0.0000,(0.0000),1944,1.000
+rainfall,Spillover Effects,0.0000,(0.0000),1944,1.000
+structure_proxy_vh,Control: Dist to Epicenter,-0.1276,(0.0939),1944,0.058
+structure_proxy_vh,Intensity (Project Count),0.0215,(0.0185),1944,0.038
+structure_proxy_vh,Spillover Effects,0.1075,(0.1114),1944,0.038
+flood_proxy_vv,Control: Dist to Epicenter,-0.0897,(0.0788),1944,0.040
+flood_proxy_vv,Intensity (Project Count),0.0146,(0.0149),1944,0.008
+flood_proxy_vv,Spillover Effects,0.1322,(0.0841),1944,0.009
+price_rice,Control: Dist to Epicenter,-29.9059,(81.4133),192,0.026
+price_rice,Intensity (Project Count),-28.4492**,(12.1473),192,0.073
+price_rice,Spillover Effects,16.3415,(71.2110),192,0.005
+log_price_rice,Control: Dist to Epicenter,-0.0164,(0.0287),192,0.021
+log_price_rice,Intensity (Project Count),-0.0104**,(0.0044),192,0.094
+log_price_rice,Spillover Effects,-0.0023,(0.0238),192,0.010

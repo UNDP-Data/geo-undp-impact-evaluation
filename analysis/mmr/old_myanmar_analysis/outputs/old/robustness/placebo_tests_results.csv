@@ -1,0 +1,3 @@
+test,coefficient,p_value,pass
+Fake_Post_Period,-0.15407948005818817,0.8839405133825154,True
+Random_Treatment,-0.7067547418482634,0.2546976279515927,True
