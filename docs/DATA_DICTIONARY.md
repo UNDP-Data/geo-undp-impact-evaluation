@@ -21,6 +21,8 @@ The Gaza site digitisation (`analysis/pse/00_digitize_all_maps.py`, local machin
 
 Files where the `Other` label appears: `outputs/pse/tables/gdp_sensitivity.csv`, `did_by_intervention_type.csv`, `pretrends_tests.csv` (and any other per-sector output).
 
+**How the label arises (traced 2026-07-13):** `analysis/pse/00_digitize_all_maps.py` assigns `intervention_type` from the source map's *filename* (`guess_category()`: wash→WASH, debris→Debris, shelter→Shelter, health→Health, employment→Employment, education→Education, anything else→**Other**). Sites from maps whose filenames didn't match a keyword fell into Other — which in practice contains the employment-related maps plus miscellaneous ones. Downstream, `CATEGORY_MAP` in `01_did_comprehensive.py` maps site types to project categories for start-date matching (Other → Health & Emergency / Governance & Rule of Law).
+
 **TODO (local machine):** export per-category site counts from the digitisation output and record them here, so the size of each class is documented.
 
 ## 2. Gaza site count: 454, not 364
@@ -40,19 +42,23 @@ The DiD table (`outputs/mmr/results/did_buffer_results.csv`) uses km labels: `0.
 
 The pre-trends figures (`outputs/mmr/figures/pretrends/`, `pretrends_calendar/`) use five names: `tight`, `moderate`, `baseline`, `wide`, `very_wide`.
 
-**TODO (local machine):** transcribe the name→radius mapping from the spec definitions at the top of `analysis/mmr/02_pretrends_verified.py` into the table below:
+**RESOLVED (2026-07-13)** from `BUFFER_SPECS` in `analysis/mmr/02_pretrends_verified.py`:
 
 | Figure name | km radii (inner–outer) |
 |---|---|
-| tight | ? |
-| moderate | ? |
-| baseline | ? (paper's "primary specification") |
-| wide | ? |
-| very_wide | ? |
+| tight | 1–3 km |
+| moderate | 2–5 km |
+| baseline | 3–8 km |
+| wide | 5–15 km |
+| very_wide | 8–20 km |
 
-## 5. `config/*.yaml` `intervention_start` is NOT the DiD treatment date
+The 0.5–1.5 km spec is excluded from the pre-trend suite (single treated township). **Gotcha: the file named "baseline" is 3–8 km, NOT 2–5 km.** Gaza's donut specs use a different naming (`did_conflict_controlled.csv`): very_tight 200–600 m, tight 300–800 m, moderate 400 m–1 km, etc.
 
-`config/myanmar.yaml` has `intervention_start: '2025-09-01'` — this matches the start date of the debris project (01004748) and drives dashboard visuals. The causal analysis convention (established earlier in the project) is that the **DiD post-period begins with actual UNDP arrival (May 2025)**, and Gaza uses **staggered per-site project start dates**. Confirm against the local `analysis/` scripts before citing any single treatment date.
+## 5. Treatment dates — RESOLVED (2026-07-13, from the scripts)
+
+**Myanmar:** single COMMON treatment date, **2025-09-01**, from `get_infrastructure_treatment_date()` in `analysis/mmr/01_did_buffer_fixed.py` — deliberately the first post-earthquake *infrastructure* project, "NOT the Environment project (April 2025)" per the script's own docstring. `config/myanmar.yaml` `intervention_start: 2025-09-01` is consistent. Because timing is common, Goodman-Bacon decomposition is *inapplicable* to Myanmar (nothing staggered to decompose) — the paper now says so explicitly.
+
+**Gaza:** staggered per-site treatment; each site's `project_start` comes from matching its `intervention_type` through `CATEGORY_MAP` (in `analysis/pse/01_did_comprehensive.py`) to the earliest post-Oct-7-2023 project of the corresponding `ml_category` in `undp_projects.csv`.
 
 ## 6. Which file backs which headline number
 
@@ -81,7 +87,8 @@ VIIRS monthly composites publish with ~1–2-month lag; both panels are extendab
 
 ## 9. Known-missing from the public repo (as of 2026-07-13)
 
-- `analysis/` (all Myanmar and Gaza analysis scripts — local only)
-- ROI workbook: `roi_evidence/`, `CALCULATIONS.md`, `roi_attributed.json` (local only)
-- Myanmar robustness **tables**: placebo, balance, pre-trends CSVs (figures exist; tables don't)
-- Goodman-Bacon decomposition and dose-response-by-epicentre outputs (claimed in draft; no file anywhere — regenerate from `analysis/mmr/old/` or cut)
+- ~~`analysis/`~~ **PUSHED 2026-07-13 (commit 7098f5e)** along with `roi_attributed.json` and `roi_evidence/` (ACLED password scrubbed from 4 archived scripts first — rotate the ACLED credential).
+- Site coordinates and rasters remain in gitignored `data/` (correct — size/licensing).
+- Myanmar robustness tables ON THE CURRENT BUFFER SPEC: still missing. Archived tables from the earlier township-level spec are now tracked under `analysis/mmr/old_myanmar_analysis/outputs/` (placebo p=0.88/0.25, IPW balance, event study, dose-response +0.067/project p<0.001, damage controls +1.44 p=0.006).
+- Goodman-Bacon: RESOLVED as inapplicable to Myanmar (common treatment timing); relevant only to Gaza's staggered design, where a Callaway–Sant'Anna robustness run remains the recommended referee-proofing.
+- Gaza GDP per capita ($1,122) is an ASSUMPTION per `CALCULATIONS.md` (identical to Myanmar's WDI figure) — source a Gaza-Strip-specific pre-conflict value (PCBS) and recompute per-person gains. Gaza employment budget ($12.5M) is approximate — confirm against project list.
