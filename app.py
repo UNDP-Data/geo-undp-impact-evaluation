@@ -119,6 +119,12 @@ def resolve_dir(kind, code_, for_write=False):
     return user_path if user_path.exists() else shared
 
 
+# Countries with verified, published causal impact-evaluation results.
+# Protected from in-place editing and from copy-on-write cloning; users who
+# want a modified version must save it under a new, independent name.
+LOCKED_COUNTRIES = {"mmr", "pse"}  # Myanmar, Gaza
+
+
 def all_visible_config_names():
     """Shared countries plus this user's own additions, merged, no dupes,
     no username tags — exactly what the dropdown should show."""
@@ -1019,16 +1025,20 @@ if mode == "📊 View Results":
                         format_func=lambda i: _opts[i]['label'], index=_cidx, key="undp_proj_top")
                     _nint = _opts[_pick]['date']
                     if _nint != _cur:
-                        config['events']['intervention_start'] = _nint
-                        _cfg_write_path = resolve_config_path(selected, for_write=True)
-                        resolve_dir("data", code, for_write=True)      # ensure user has own copy to read/write
-                        resolve_dir("outputs", code, for_write=True)   # (cloned from shared on first touch)
-                        with open(_cfg_write_path, 'w') as _fw:
-                            yaml.dump(config, _fw, default_flow_style=False, sort_keys=False)
-                        subprocess.run(
-                            [sys.executable, "pipeline/recovery_scorecard.py", "--config", str(_cfg_write_path)],
-                            cwd=str(user_workspace_root()), capture_output=True, timeout=60)
-                        st.rerun()
+                        if code in LOCKED_COUNTRIES:
+                            st.warning("🔒 This is a protected country with verified results. Use Setup & Run "
+                                       "to create your own version under a new name if you'd like to explore this.")
+                        else:
+                            config['events']['intervention_start'] = _nint
+                            _cfg_write_path = resolve_config_path(selected, for_write=True)
+                            resolve_dir("data", code, for_write=True)      # ensure user has own copy to read/write
+                            resolve_dir("outputs", code, for_write=True)   # (cloned from shared on first touch)
+                            with open(_cfg_write_path, 'w') as _fw:
+                                yaml.dump(config, _fw, default_flow_style=False, sort_keys=False)
+                            subprocess.run(
+                                [sys.executable, "pipeline/recovery_scorecard.py", "--config", str(_cfg_write_path)],
+                                cwd=str(user_workspace_root()), capture_output=True, timeout=60)
+                            st.rerun()
         except Exception:
             pass
 
@@ -1400,6 +1410,21 @@ elif mode == "⚙️ Setup & Run":
         ref = QUICK_REF[pick]
         cc = ref['iso'].lower()
         setup_country_code = cc
+
+        if cc in LOCKED_COUNTRIES:
+            st.warning("🔒 **" + pick + "** contains verified causal impact-evaluation results and is "
+                       "protected from editing — this also avoids cloning its large dataset. To build a "
+                       "modified version, give it a new name below; it starts as an independent, fresh entry.")
+            _fork_name = st.text_input("New country code for your version", value=cc + "_updated",
+                                        key="locked_fork_name")
+            _clean_fork = "".join(ch for ch in _fork_name.strip().lower() if ch.isalnum() or ch == "_")
+            if _clean_fork and _clean_fork not in LOCKED_COUNTRIES:
+                cc = _clean_fork
+                setup_country_code = cc
+            else:
+                st.info("Enter a valid, different name above to continue.")
+                st.stop()
+
         existing = resolve_config_path(cc).exists()
 
         if existing:
@@ -1573,30 +1598,40 @@ elif mode == "⚙️ Setup & Run":
     # run_code is the actual country code (e.g. "ven"); prefer the code tied to
     # run_country specifically, since it can differ from the page's fallback `code`.
     run_code = setup_country_code or code
-    _cfg_obj = resolve_config_path(run_country, for_write=True)   # user's own writable config
-    resolve_dir("data", run_code, for_write=True)                 # cloned from shared on first touch
-    resolve_dir("outputs", run_code, for_write=True)
-    _cfg = str(_cfg_obj)
+    _run_locked = run_country in LOCKED_COUNTRIES or run_code in LOCKED_COUNTRIES
+
+    def _cfg_for_run():
+        """Resolve the config + clone data/outputs on first touch. Deliberately
+        lazy — only called at the moment a run is actually triggered, never just
+        from loading this page, so viewing Setup & Run never clones anything."""
+        _cfg_obj = resolve_config_path(run_country, for_write=True)
+        resolve_dir("data", run_code, for_write=True)
+        resolve_dir("outputs", run_code, for_write=True)
+        return str(_cfg_obj)
+
     def _stage(stage):            # call the cross-platform runner (no `make` needed)
-        return [_PY, "run_pipeline.py", "--config", _cfg, "--stage", stage]
+        return [_PY, "run_pipeline.py", "--config", _cfg_for_run(), "--stage", stage]
+
     steps = [
-        ("🗺️ Boundaries", _stage("boundaries")),
-        ("🛰️ Satellite",  _stage("gee")),
-        ("⚔️ Conflict",   _stage("acled")),
-        ("🏗️ UNDP",       _stage("undp")),
-        ("📈 Trends",     _stage("gt")),
-        ("🔧 Panel",      _stage("preprocess")),
-        ("📊 Visuals",    _stage("visuals")),
-        ("🎯 Scorecard",  _stage("scorecard")),
+        ("🗺️ Boundaries", "boundaries"),
+        ("🛰️ Satellite",  "gee"),
+        ("⚔️ Conflict",   "acled"),
+        ("🏗️ UNDP",       "undp"),
+        ("📈 Trends",     "gt"),
+        ("🔧 Panel",      "preprocess"),
+        ("📊 Visuals",    "visuals"),
+        ("🎯 Scorecard",  "scorecard"),
     ]
+    if _run_locked:
+        st.info("🔒 This is a protected country. Create a new name above (in Configure Country) to run a pipeline.")
     cols = st.columns(4)
-    for i, (lb, cmd) in enumerate(steps):
+    for i, (lb, stage_name) in enumerate(steps):
         with cols[i % 4]:
-            if st.button(lb, width='stretch', key=f"run_{lb}"):
-                run_cmd(cmd, lb)
+            if st.button(lb, width='stretch', key=f"run_{lb}", disabled=_run_locked):
+                run_cmd(_stage(stage_name), lb)
 
     st.markdown("")
-    if st.button("▶️ Run Full Pipeline", width='stretch', type="primary", key="run_full"):
+    if st.button("▶️ Run Full Pipeline", width='stretch', type="primary", key="run_full", disabled=_run_locked):
         run_cmd(_stage("all"), "Full Pipeline")
         st.balloons()
 
