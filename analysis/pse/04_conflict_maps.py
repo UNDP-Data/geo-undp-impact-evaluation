@@ -232,8 +232,8 @@ def create_three_panel_conflict_map(acled_df, boundaries, treated_sites, output_
         # Plot UNDP sites if requested
         if show_undp:
             ax.scatter(treated_sites['longitude'], treated_sites['latitude'],
-                      c='blue', s=35, alpha=0.8, marker='o', zorder=10,
-                      edgecolors='white', linewidth=0.5, label='UNDP Sites')
+                      c='blue', s=9, alpha=0.9, marker='o', zorder=10,
+                      edgecolors='none', label='UNDP Sites')
         
         # Title
         ax.set_title(f"{data['period_name']}\n({data['phase']})\n"
@@ -358,7 +358,7 @@ def create_point_scatter_map(acled_df, boundaries, treated_sites, output_path, s
     if show_undp:
         ax.scatter(treated_sites['longitude'], treated_sites['latitude'],
                   c='blue', s=35, alpha=0.9, marker='o', zorder=10,
-                  edgecolors='white', linewidth=0.5, label='UNDP Sites')
+                  edgecolors='none', label='UNDP Sites')
         ax.legend(loc='upper left', fontsize=10, markerscale=1.5)
     
     # Zoom to Gaza

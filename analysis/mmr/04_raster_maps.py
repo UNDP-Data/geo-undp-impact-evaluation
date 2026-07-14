@@ -203,6 +203,9 @@ def select_comparison_dates(rasters_dict, indicator):
     post_undp = post_dates[-1] if post_dates else available[-1]
     post_disaster = post_dates[0] if post_dates else available[-1]
     target_month = post_undp.month
+    same_month = [d for d in available if d.month == target_month]
+    if len(same_month) >= 3:
+        return [(dd, rasters_dict[indicator][dd]) for dd in same_month[-3:]]
     pre_candidates = [d for d in pre_dates if d.month == target_month]
     pre_disaster = pre_candidates[-1] if pre_candidates else (pre_dates[-1] if pre_dates else available[0])
     
@@ -331,15 +334,15 @@ def create_three_panel_map(indicator, rasters_dict, sites, undp_projects, gdf, n
             gdf.boundary.plot(ax=ax, color='#666666', linewidth=0.2, alpha=0.3, zorder=5)
         
         # Epicenter
-        ax.scatter([95.925], [22.001], marker='*', s=300, c='red',
-                  edgecolor='white', linewidth=1.5, zorder=15)
+        ax.scatter([95.925], [22.001], marker='*', s=130, c='red',
+                  edgecolor='none', zorder=15)
         
         # UNDP sites (UN BLUE) - only on last panel
         if i == 2 and show_markers and sites:
             lons = [s['lon'] for s in sites]
             lats = [s['lat'] for s in sites]
             ax.scatter(lons, lats, marker='o', c=UN_BLUE,
-                      s=12, edgecolors='white', linewidths=0.3, 
+                      s=4, edgecolors='none', 
                       zorder=10, alpha=0.8)
         
         ax.set_title(f"{date.strftime('%Y-%m')}\n({title})",
