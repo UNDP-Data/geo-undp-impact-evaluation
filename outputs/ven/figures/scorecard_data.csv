@@ -1,0 +1,5 @@
+indicator,name,short_name,icon,description,higher_is_better,baseline,trough,current,undp_arrival,disaster_drop_pct,overall_recovery_pct,undp_recovery_pct,n_affected_units,n_total_units,trend
+nightlights,Nighttime Lights (VIIRS),Nightlights,💡,Economic activity & energy access,True,3.6038914196488996,2.72693056769153,4.990290389178741,4.190987458342443,47.4,100.0,91.1,285,335,declining
+ndvi,Vegetation (NDVI),Vegetation,🌿,Agricultural & ecosystem health,True,0.6484433719530526,0.49988687521756886,0.6279374634093019,0.6313073263739795,22.9,86.2,0.0,237,335,stagnant
+vh,SAR VH Backscatter,Radar VH,📡,Infrastructure & building presence,True,-14.879963935156303,-16.225327983903075,-14.994820230430292,-15.606957142656167,24.0,90.2,48.1,296,335,declining
+vv,SAR VV Backscatter,Radar VV,📡,Surface roughness & structures,True,-8.57735773904925,-9.856075564284414,-8.728068944416622,-9.32419919812204,23.8,86.6,48.6,291,335,declining

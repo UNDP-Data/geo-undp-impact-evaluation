@@ -1,0 +1,9 @@
+Outcome,Pre Mean,Post Mean,Change (%),N Pre,N Post
+Nighttime Lights,4.042,4.965,+22.9%,4020,4020
+Vegetation (NDVI),0.644,0.634,-1.5%,4020,4020
+SAR VV (Radar),-8.504,-8.838,-3.9%,3062,3941
+SAR VH (Radar),-14.796,-15.135,-2.3%,3062,3941
+Rainfall,104.767,100.484,-4.1%,4020,4020
+Conflict Events,0.000,0.000,N/A,4020,4020
+Conflict Fatalities,0.000,0.000,N/A,4020,4020
+Radar Vegetation (RVI),2.547,2.532,-0.6%,3062,3941

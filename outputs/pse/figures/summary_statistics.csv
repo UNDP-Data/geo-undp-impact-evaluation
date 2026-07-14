@@ -1,11 +1,11 @@
 Outcome,Pre Mean,Post Mean,Change (%),N Pre,N Post
-Nighttime Lights,11.306,9.305,-17.7%,160,416
-Vegetation (NDVI),0.281,0.259,-7.8%,160,416
-Rainfall,26.551,28.855,+8.7%,160,400
-SAR VV (Radar),-9.148,-9.309,-1.8%,160,416
-SAR VH (Radar),-16.260,-16.528,-1.7%,160,416
-Conflict Events,59.525,106.493,+78.9%,160,416
-Conflict Fatalities,58.763,146.195,+148.8%,160,416
+Nighttime Lights,11.306,9.519,-15.8%,160,480
+Vegetation (NDVI),0.281,0.274,-2.6%,160,496
+Rainfall,26.551,33.417,+25.9%,160,480
+SAR VV (Radar),-9.148,-9.205,-0.6%,160,496
+SAR VH (Radar),-16.260,-16.410,-0.9%,160,496
+Conflict Events,59.550,100.802,+69.3%,160,496
+Conflict Fatalities,58.837,124.415,+111.5%,160,496
 Price Bread,2.957,11.721,+296.4%,51,128
 Price Flour,112.145,695.618,+520.3%,55,132
 Price Rice,155.584,237.938,+52.9%,47,109
@@ -13,4 +13,4 @@ Price Sugar,3.765,47.589,+1163.8%,24,87
 Price Oil,31.016,73.563,+137.2%,44,142
 Price Milk,46.843,54.974,+17.4%,60,147
 Price Chicken,16.004,60.323,+276.9%,24,98
-Radar Vegetation (RVI),2.561,2.561,+0.0%,160,416
+Radar Vegetation (RVI),2.561,2.565,+0.2%,160,496

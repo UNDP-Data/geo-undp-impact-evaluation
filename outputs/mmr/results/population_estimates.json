@@ -1,0 +1,191 @@
+{
+  "method": "WorldPop zonal sum over treated township polygons (consistent with Gaza's WorldPop buffer method)",
+  "raster_file": "mmr_ppp_2020_UNadj_constrained.tif",
+  "raster_vintage": "2020 (pre-shock resident population, deliberate)",
+  "citation": "WorldPop (www.worldpop.org - School of Geography and Environmental Science, University of Southampton). 2020. Individual countries 2020 UN adjusted (100m) - Myanmar. CC BY 4.0. UN adjustment: WPP 2019 (UNPD).",
+  "access_date": "2026-07-13",
+  "valuation_params": {
+    "did_pct_range_exact": [
+      31.9,
+      53.2
+    ],
+    "elasticities": {
+      "low": 0.15,
+      "medium": 0.3,
+      "high": 0.5
+    },
+    "gdp_per_capita_usd": 1122,
+    "cost_base_usd": 16783198,
+    "agency_reported_N_for_comparison": 3500000
+  },
+  "per_spec": {
+    "0.5km-1.5km": {
+      "N_worldpop": 202107,
+      "n_treated_townships": 1,
+      "gdp_gain_usd_low": [
+        10850660,
+        18095772
+      ],
+      "bcr_low": [
+        0.6,
+        1.1
+      ],
+      "gdp_gain_usd_medium": [
+        21701320,
+        36191543
+      ],
+      "bcr_medium": [
+        1.3,
+        2.2
+      ],
+      "gdp_gain_usd_high": [
+        36168867,
+        60319238
+      ],
+      "bcr_high": [
+        2.2,
+        3.6
+      ]
+    },
+    "1km-3km": {
+      "N_worldpop": 1219478,
+      "n_treated_townships": 5,
+      "gdp_gain_usd_low": [
+        65470969,
+        109186694
+      ],
+      "bcr_low": [
+        3.9,
+        6.5
+      ],
+      "gdp_gain_usd_medium": [
+        130941938,
+        218373389
+      ],
+      "bcr_medium": [
+        7.8,
+        13.0
+      ],
+      "gdp_gain_usd_high": [
+        218236563,
+        363955648
+      ],
+      "bcr_high": [
+        13.0,
+        21.7
+      ]
+    },
+    "2km-5km": {
+      "N_worldpop": 1853253,
+      "n_treated_townships": 8,
+      "gdp_gain_usd_low": [
+        99496891,
+        165932119
+      ],
+      "bcr_low": [
+        5.9,
+        9.9
+      ],
+      "gdp_gain_usd_medium": [
+        198993782,
+        331864239
+      ],
+      "bcr_medium": [
+        11.9,
+        19.8
+      ],
+      "gdp_gain_usd_high": [
+        331656304,
+        553107064
+      ],
+      "bcr_high": [
+        19.8,
+        33.0
+      ]
+    },
+    "3km-8km": {
+      "N_worldpop": 3005825,
+      "n_treated_townships": 14,
+      "gdp_gain_usd_low": [
+        161375831,
+        269128345
+      ],
+      "bcr_low": [
+        9.6,
+        16.0
+      ],
+      "gdp_gain_usd_medium": [
+        322751662,
+        538256690
+      ],
+      "bcr_medium": [
+        19.2,
+        32.1
+      ],
+      "gdp_gain_usd_high": [
+        537919436,
+        897094483
+      ],
+      "bcr_high": [
+        32.1,
+        53.5
+      ]
+    },
+    "5km-15km": {
+      "N_worldpop": 4671438,
+      "n_treated_townships": 23,
+      "gdp_gain_usd_low": [
+        250798762,
+        418260004
+      ],
+      "bcr_low": [
+        14.9,
+        24.9
+      ],
+      "gdp_gain_usd_medium": [
+        501597524,
+        836520008
+      ],
+      "bcr_medium": [
+        29.9,
+        49.8
+      ],
+      "gdp_gain_usd_high": [
+        835995873,
+        1394200014
+      ],
+      "bcr_high": [
+        49.8,
+        83.1
+      ]
+    },
+    "8km-20km": {
+      "N_worldpop": 6687500,
+      "n_treated_townships": 32,
+      "gdp_gain_usd_low": [
+        359036494,
+        598769325
+      ],
+      "bcr_low": [
+        21.4,
+        35.7
+      ],
+      "gdp_gain_usd_medium": [
+        718072988,
+        1197538650
+      ],
+      "bcr_medium": [
+        42.8,
+        71.4
+      ],
+      "gdp_gain_usd_high": [
+        1196788312,
+        1995897750
+      ],
+      "bcr_high": [
+        71.3,
+        118.9
+      ]
+    }
+  }
+}

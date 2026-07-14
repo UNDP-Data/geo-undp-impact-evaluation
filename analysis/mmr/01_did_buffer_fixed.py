@@ -73,7 +73,7 @@ def load_boundaries():
     gdf = gpd.read_file(BOUNDARIES_FILE)
     if gdf.crs != "EPSG:4326":
         gdf = gdf.to_crs("EPSG:4326")
-    id_col = next((c for c in gdf.columns if 'pcode' in c.lower()), None)
+    id_col = next((c for c in gdf.columns if 'pcode' in c.lower() or c == 'shapeID'), None)
     gdf['centroid'] = gdf.geometry.centroid
     gdf['center_lon'] = gdf['centroid'].x
     gdf['center_lat'] = gdf['centroid'].y

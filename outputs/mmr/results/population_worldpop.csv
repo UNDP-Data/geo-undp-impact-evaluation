@@ -1,0 +1,7 @@
+spec_label,spec_key,inner_m,outer_m,n_treated_townships,n_control_townships,treated_population_worldpop2020,control_population_worldpop2020
+0.5km-1.5km,ultra_tight,500,1500,1,5,202107,1112652
+1km-3km,tight,1000,3000,5,9,1219478,1786347
+2km-5km,moderate,2000,5000,8,15,1853253,2818185
+3km-8km,baseline,3000,8000,14,18,3005825,3681675
+5km-15km,wide,5000,15000,23,44,4671438,8078761
+8km-20km,very_wide,8000,20000,32,50,6687500,9374328

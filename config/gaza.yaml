@@ -1,7 +1,7 @@
 country_name: Palestine - Gaza Strip
 country_code: PSE
 study_period_start: '2023-01-01'
-study_period_end: '2025-12-31'
+study_period_end: '2026-05-31'
 events:
   disaster_date: '2023-10-07'
   disaster_type: conflict
@@ -10,7 +10,7 @@ disaster_label: Conflict
 raster_maps:
   pre_month: 2023-09
   post_month: 2023-11
-  recent_month: 2025-11
+  recent_month: 2026-05
 boundaries:
   file_path: data/pse/boundaries/gaza_admin2.geojson
   id_column: adm2_pcode

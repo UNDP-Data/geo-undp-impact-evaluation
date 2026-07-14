@@ -141,6 +141,7 @@ def load_config(config_path: str) -> CountryConfig:
     disaster_label = data.pop('disaster_label', None)
     
     data.pop("google_trends_keywords", None)
+    data.pop("unit_filter", None)
     config = CountryConfig(
         boundaries=boundaries,
         events=events,

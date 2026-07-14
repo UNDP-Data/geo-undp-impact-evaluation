@@ -1,0 +1,24 @@
+country_name: Venezuela
+country_code: VEN
+study_period_start: '2024-01-01'
+study_period_end: '2025-12-31'
+events:
+  disaster_type: earthquake
+  disaster_date: '2025-01-01'
+  intervention_start: '2025-01-01'
+boundaries:
+  file_path: data/ven/boundaries/ven_admin2.geojson
+  id_column: shapeID
+  name_column: shapeName
+  admin_level: 2
+acled_country_name: Venezuela
+wfp_commodity: Rice
+google_trends_keywords:
+  food: food
+  water: water
+  shelter: shelter
+  medicine: medicine
+  aid: aid
+  reconstruction: reconstruction
+  refugee: refugee
+  earthquake: earthquake

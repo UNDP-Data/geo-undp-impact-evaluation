@@ -1,7 +1,7 @@
 country_name: Myanmar
 country_code: MMR
 study_period_start: '2023-10-01'
-study_period_end: '2026-01-30'
+study_period_end: '2026-05-31'
 events:
   disaster_type: earthquake
   disaster_date: '2025-03-28'
@@ -14,7 +14,7 @@ epicenter:
 raster_maps:
   pre_month: 2025-02
   post_month: 2025-04
-  recent_month: 2025-12
+  recent_month: 2026-05
 boundaries:
   file_path: data/mmr/boundaries/mmr_admin3.geojson
   id_column: shapeID
