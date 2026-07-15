@@ -1,4 +1,4 @@
-# BUILD: corridor-v8
+# BUILD: corridor-v9
 #!/usr/bin/env python3
 """
 analysis/mmr/07_paper_figures.py
@@ -149,11 +149,15 @@ def fig3b_pretrends(panel, dist, panel_full=None, dist_g=None):
                                         pd.Timestamp("2025-09-01"))
     pre = df_full[df_full.period_start < "2025-03-28"].copy()
     pre["month_idx"] = (pre.period_start.dt.year - 2023)*12 + pre.period_start.dt.month
-    m = smf.ols("log_nightlights ~ month_idx * is_treated", data=pre).fit(
-        cov_type="cluster", cov_kwds={"groups": pre["unit_id"]})
+    # Canonical test — identical to analysis/mmr/02_pretrends_verified.py (unclustered OLS)
+    m = smf.ols("log_nightlights ~ month_idx * is_treated", data=pre).fit()
     p = m.pvalues.get("month_idx:is_treated", np.nan)
+    m_cl = smf.ols("log_nightlights ~ month_idx * is_treated", data=pre).fit(
+        cov_type="cluster", cov_kwds={"groups": pre["unit_id"]})
+    p_cl = m_cl.pvalues.get("month_idx:is_treated", np.nan)
+    print(f"  pre-trend test: canonical p={p:.3f}; clustered robustness p={p_cl:.3f}")
     verdict = "parallel (PASS)" if p > 0.10 else "diverging (FAIL)"
-    ax.text(0.02, 0.95, f"Pre-trend test (linear interaction,\npre-earthquake months): p = {p:.2f} — {verdict}",
+    ax.text(0.02, 0.95, f"Pre-trend test (linear interaction, pre-earthquake\nmonths; as in 02_pretrends_verified.py): p = {p:.2f} — {verdict}",
             transform=ax.transAxes, va="top", fontsize=9,
             bbox=dict(boxstyle="round", fc="white", ec=ps.GREY, alpha=0.9))
     ax.set_ylabel("UNDP − comparison gap, log luminosity")
