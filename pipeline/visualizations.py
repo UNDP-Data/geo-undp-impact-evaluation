@@ -41,7 +41,8 @@ CATEGORY_COLORS = {
 
 # Core outcomes to plot (not derived variables)
 CORE_OUTCOMES = {
-    'nightlights': {'name': 'Nighttime Lights', 'line': 'darkblue', 'fill': 'blue', 'unit': 'nW/cm²/sr', 'cmap': 'hot_r'},
+    'nightlights': {'name': 'Nighttime Lights (VIIRS Monthly)', 'line': 'darkblue', 'fill': 'blue', 'unit': 'nW/cm²/sr', 'cmap': 'hot_r'},
+    'bm_nightlights': {'name': 'Nighttime Lights (Black Marble Daily)', 'line': 'navy', 'fill': 'cornflowerblue', 'unit': 'nW/cm²/sr', 'cmap': 'hot_r'},
     'ndvi': {'name': 'Vegetation (NDVI)', 'line': 'forestgreen', 'fill': 'lightgreen', 'unit': 'Index', 'cmap': 'RdYlGn'},
     'rvi': {'name': 'Radar Vegetation (RVI)', 'line': 'darkgreen', 'fill': 'palegreen', 'unit': 'Index', 'cmap': 'Greens'},
     'conflict_events': {'name': 'Conflict Events', 'line': 'crimson', 'fill': 'lightcoral', 'unit': 'Count', 'cmap': 'Reds'},
@@ -406,29 +407,41 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     # Recent: latest month with valid data (NOT hardcoded study_period_end)
     date3 = find_latest_valid_month(panel, outcome, dates)
     
-    if date1 is None or date2 is None or date3 is None:
+    if date1 is None or date3 is None:
         return False
-    
-    # If date3 == date2, try to find a later one
-    if date3 <= date2 and len(post_dates) > 1:
+
+    # If a post-event month exists and date3 == date2, look for a later one
+    if date2 is not None and date3 <= date2 and len(post_dates) > 1:
         later_dates = [d for d in post_dates if pd.Timestamp(d) > date2]
         if later_dates:
             date3 = find_latest_valid_month(panel, outcome, later_dates) or date3
-    
+
     def get_data(date):
         df_date = panel[panel['period_start'] == date]
         if 'conflict' in outcome or 'events' in outcome:
             return df_date.groupby('unit_id')[outcome].sum().reset_index()
         return df_date.groupby('unit_id')[outcome].mean().reset_index()
-    
-    gdf1 = gdf.merge(get_data(date1), left_on=id_col, right_on='unit_id', how='left')
-    gdf2 = gdf.merge(get_data(date2), left_on=id_col, right_on='unit_id', how='left')
-    gdf3 = gdf.merge(get_data(date3), left_on=id_col, right_on='unit_id', how='left')
-    
-    all_vals = pd.concat([gdf1[[outcome]], gdf2[[outcome]], gdf3[[outcome]]]).dropna()
+
+    # Build panels dynamically: always Pre + Most Recent; include Post-Event
+    # only when a valid post-disaster month exists. Sensors whose data hasn't
+    # reached the event yet (e.g. monthly VIIRS composite right after a fresh
+    # crisis) now get an honest 2-panel map instead of silently no map.
+    panels = [(pd.Timestamp(date1), f"Pre-Event\n{pd.Timestamp(date1).strftime('%B %Y')}")]
+    if date2 is not None:
+        panels.append((pd.Timestamp(date2), f"Post-Event\n{pd.Timestamp(date2).strftime('%B %Y')}"))
+    if pd.Timestamp(date3) not in [d for d, _ in panels]:
+        panels.append((pd.Timestamp(date3), f"Most Recent\n{pd.Timestamp(date3).strftime('%B %Y')}"))
+    if date2 is None:
+        d_last, t_last = panels[-1]
+        panels[-1] = (d_last, t_last + "\n(no post-event data yet)")
+
+    gdfs = [gdf.merge(get_data(d), left_on=id_col, right_on='unit_id', how='left')
+            for d, _ in panels]
+
+    all_vals = pd.concat([g[[outcome]] for g in gdfs]).dropna()
     if len(all_vals) == 0:
         return False
-    
+
     vmin = all_vals[outcome].quantile(0.02)
     vmax = all_vals[outcome].quantile(0.98)
     if vmin == vmax:
@@ -437,17 +450,16 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     # ── COLORMAP & NORMALIZATION ─────────────────────────────────────────
     # Nightlights: use PowerNorm for better contrast (black → yellow → red)
     cmap_name = cfg.get('cmap', 'viridis')
-    if outcome == 'nightlights':
+    if 'nightlights' in outcome:
         norm = PowerNorm(gamma=0.4, vmin=max(vmin, 0.01), vmax=vmax)
     else:
         norm = Normalize(vmin=vmin, vmax=vmax)
     
-    fig, axes = plt.subplots(1, 3, figsize=(20, 8))
-    titles = [f"Pre-Event\n{date1.strftime('%B %Y')}", 
-              f"Post-Event\n{date2.strftime('%B %Y')}", 
-              f"Most Recent\n{date3.strftime('%B %Y')}"]
-    
-    for ax, g, title in zip(axes, [gdf1, gdf2, gdf3], titles):
+    fig, axes = plt.subplots(1, len(panels), figsize=(7 * len(panels), 8))
+    if len(panels) == 1:
+        axes = [axes]
+
+    for ax, g, (_d, title) in zip(axes, gdfs, panels):
         g.plot(column=outcome, ax=ax, cmap=cmap_name, norm=norm,
               edgecolor='black', linewidth=0.1, legend=False, 
               missing_kwds={'color': 'lightgray'})

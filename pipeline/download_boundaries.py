@@ -131,18 +131,41 @@ def main():
     print(f"Admin level: {admin_level}")
     print(f"Output: {output_dir}")
     
-    # Try geoBoundaries first
-    output_file = download_geoboundaries(country_code, admin_level, output_dir)
-    
-    # Fallback to HDX
+    # Try requested admin level; if it doesn't exist for this country
+    # (e.g. Venezuela/Colombia have no ADM3+ in geoBoundaries), fall back
+    # level by level and update the config so downstream stages match.
+    output_file = None
+    used_level = admin_level
+    for lvl in range(admin_level, 0, -1):
+        output_file = download_geoboundaries(country_code, lvl, output_dir)
+        if output_file is None:
+            output_file = download_hdx(country_code, lvl, output_dir)
+        if output_file is not None:
+            used_level = lvl
+            break
+        print(f"  ⚠ ADM{lvl} not available for {country_code} — trying ADM{lvl-1}")
+
     if output_file is None:
-        output_file = download_hdx(country_code, admin_level, output_dir)
-    
-    if output_file is None:
-        print(f"\n❌ Download failed")
+        print(f"\n❌ Download failed at every admin level (ADM{admin_level}..ADM1)")
         print(f"   Try manual download from:")
         print(f"   https://data.humdata.org/dataset/cod-ab-{country_code.lower()}")
         return 1
+
+    if used_level != admin_level:
+        print(f"\n  ⚠ Requested ADM{admin_level} does not exist for {country_code}.")
+        print(f"  ✓ Using ADM{used_level} instead — updating config to match.")
+        try:
+            with open(args.config) as _f:
+                _cfg_full = yaml.safe_load(_f)
+            _cfg_full['boundaries']['admin_level'] = used_level
+            _cfg_full['boundaries']['file_path'] = (
+                f"data/{country_code.lower()}/boundaries/"
+                f"{country_code.lower()}_admin{used_level}.geojson")
+            with open(args.config, 'w') as _f:
+                yaml.dump(_cfg_full, _f, default_flow_style=False, sort_keys=False)
+        except Exception as _e:
+            print(f"  ⚠ Could not update config automatically ({_e}) — "
+                  f"set admin_level: {used_level} manually.")
     
     # Validate
     gdf = gpd.read_file(output_file)

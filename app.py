@@ -296,12 +296,12 @@ COUNTRIES = {
 }
 
 THEMES = {
-    '💡 Economic Recovery': {'desc':'Nighttime lights as proxy for economic activity and energy access','indicators':['nightlights','price_rice','price_oil','price_bread','price_flour','price_chicken','price_milk','price_sugar']},
+    '💡 Economic Recovery': {'desc':'Nighttime lights as proxy for economic activity and energy access','indicators':['nightlights','bm_nightlights','price_rice','price_oil','price_bread','price_flour','price_chicken','price_milk','price_sugar']},
     '🌿 Vegetation': {'desc':'Vegetation and ecosystem recovery across affected regions','indicators':['ndvi','rvi','rainfall']},
     '🏚️ Debris & Surface': {'desc':'Surface roughness changes via radar — debris, rubble, and land clearing','indicators':['vv']},
     '⚔️ Conflict': {'desc':'Armed conflict events and fatalities from ACLED','indicators':['conflict_events','conflict_fatalities']},
 }
-NAMES = {'nightlights':'Energy & Economic Activity','ndvi':'Vegetation Health','vv':'Debris & Surface (Radar VV)','vh':'Infrastructure (Radar VH)','rvi':'Radar Vegetation','rainfall':'Rainfall','conflict_events':'Conflict Events','conflict_fatalities':'Conflict Fatalities','price_rice':'Rice Price','price_oil':'Oil Price','price_bread':'Bread Price','price_flour':'Flour Price','price_chicken':'Chicken Price','price_milk':'Milk Price','price_sugar':'Sugar Price'}
+NAMES = {'nightlights':'Energy & Economic Activity (VIIRS Monthly)','bm_nightlights':'Energy & Economic Activity (Black Marble Daily — near-real-time)','ndvi':'Vegetation Health','vv':'Debris & Surface (Radar VV)','vh':'Infrastructure (Radar VH)','rvi':'Radar Vegetation','rainfall':'Rainfall','conflict_events':'Conflict Events','conflict_fatalities':'Conflict Fatalities','price_rice':'Rice Price','price_oil':'Oil Price','price_bread':'Bread Price','price_flour':'Flour Price','price_chicken':'Chicken Price','price_milk':'Milk Price','price_sugar':'Sugar Price'}
 RASTER_IND = ['viirs','ndvi','ndbi','bsi','vv','evi','savi','nbr','swir','mndwi']
 RASTER_NAMES = {'viirs':'Energy & Nightlights','ndvi':'Vegetation Health','ndbi':'Built-Up Areas','bsi':'Bare Soil & Debris','evi':'Enhanced Vegetation','savi':'Soil-Adjusted Vegetation','nbr':'Burn Ratio','vv':'Surface Roughness (Radar)','swir':'Short-Wave Infrared','mndwi':'Water Coverage'}
 
