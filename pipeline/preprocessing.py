@@ -225,6 +225,23 @@ class PanelDataBuilder:
         print(f"  Units: {panel['unit_id'].nunique()}")
         
         # ==========================================================================
+        # MERGE BLACK MARBLE DAILY NTL (near-real-time, separate indicator)
+        # ==========================================================================
+        bm_path = self.data_dir / "external" / "blackmarble_ntl.csv"
+        if bm_path.exists():
+            try:
+                bm = pd.read_csv(bm_path)
+                bm['period_start'] = pd.to_datetime(bm['period_start'])
+                bm['unit_id'] = bm['unit_id'].astype(str)
+                panel['unit_id'] = panel['unit_id'].astype(str)
+                panel = panel.merge(bm[['unit_id', 'period_start', 'bm_nightlights']],
+                                    on=['unit_id', 'period_start'], how='left')
+                n_bm = panel['bm_nightlights'].notna().sum()
+                print(f"  ✓ Merged Black Marble daily NTL ({n_bm} unit-months)")
+            except Exception as e:
+                print(f"  ⚠ Black Marble merge failed: {e}")
+
+        # ==========================================================================
         # MERGE ACLED CONFLICT DATA
         # ==========================================================================
         acled_path = self.data_dir / "external" / "acled_conflict.csv"

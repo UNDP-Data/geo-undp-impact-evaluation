@@ -197,7 +197,7 @@ def main():
                 
                 fig.tight_layout()
                 fname = f"gt_{col.replace('gt_','').replace('trends_','')}.png"
-                fig.savefig(fig_dir / fname, dpi=150, bbox_inches='tight', facecolor='white')
+                fig.savefig(figures_dir / fname, dpi=150, bbox_inches='tight', facecolor='white')
                 plt.close(fig)
                 print(f"  ✓ {fname}")
             except Exception as e:

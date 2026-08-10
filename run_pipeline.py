@@ -74,6 +74,16 @@ def main():
             print(f"  ✓ GEE data exists ({file_rows(f)} rows) — skipping", flush=True); return 0
         return run_module("pipeline.gee_export_debug", args.config)
 
+    def bm():
+        f = ext / "blackmarble_ntl.csv"
+        if f.exists():
+            print(f"  ✓ Black Marble exists ({file_rows(f)} rows) — skipping", flush=True); return 0
+        try:
+            run_module("pipeline.blackmarble_download", args.config)
+        except Exception:
+            print("  ⚠ Black Marble failed — continuing without it", flush=True)
+        return 0   # experimental stage: never counts as an issue
+
     def acled():
         f = ext / "acled_conflict.csv"
         if f.exists():
@@ -119,13 +129,13 @@ def main():
         return subprocess.run(cmd).returncode
 
     stages = {
-        "boundaries": boundaries, "gee": gee, "acled": acled, "gt": gt,
+        "boundaries": boundaries, "gee": gee, "bm": bm, "acled": acled, "gt": gt,
         "undp": undp, "preprocess": preprocess, "visuals": visuals,
         "trends": trends, "scorecard": scorecard,
     }
 
     if stage == "all":
-        order = ["boundaries", "gee", "acled", "gt", "undp", "preprocess", "visuals", "trends", "scorecard"]
+        order = ["boundaries", "gee", "bm", "acled", "gt", "undp", "preprocess", "visuals", "trends", "scorecard"]
         for st_name in order:
             print(f"\n=== {st_name.upper()} ===", flush=True)
             rc = stages[st_name]()

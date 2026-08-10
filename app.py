@@ -1615,6 +1615,7 @@ elif mode == "⚙️ Setup & Run":
     steps = [
         ("🗺️ Boundaries", "boundaries"),
         ("🛰️ Satellite",  "gee"),
+        ("🌙 Daily NTL",  "bm"),
         ("⚔️ Conflict",   "acled"),
         ("🏗️ UNDP",       "undp"),
         ("📈 Trends",     "gt"),

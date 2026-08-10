@@ -29,6 +29,8 @@ INDICATORS = {
         'higher_is_better': True, 'description': 'Surface roughness & structures', 'seasonal': False, 'db_scale': True},
 }
 OPTIONAL = {
+    'bm_nightlights': {'name': 'Nighttime Lights (Daily, Black Marble)', 'short': 'Lights (daily)', 'icon': '🌙',
+        'higher_is_better': True, 'description': 'Near-real-time daily NTL (VNP46A2, ~1 week lag); experimental', 'seasonal': True},
     'ndbi': {'name': 'Built-Up Index (NDBI)', 'short': 'Built-Up', 'icon': '🏗️',
         'higher_is_better': True, 'description': 'Urban & built-up area density', 'seasonal': False},
     'bsi': {'name': 'Bare Soil Index (BSI)', 'short': 'Bare Soil', 'icon': '🏚️',
