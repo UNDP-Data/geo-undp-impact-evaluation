@@ -732,12 +732,14 @@ def render_copilot_sidebar(config, figures_dir, code):
 
 
 def find_figs(indicator, pngs):
+    # Exact match only: "ts_<indicator>.png" / "map_<indicator>.png".
+    # A substring match here (e.g. 'nightlights' inside 'bm_nightlights')
+    # would let one indicator's section pull in another's chart/map — this
+    # broke the VIIRS vs Black Marble split, so match the full token only.
     out = []
     for f in pngs:
         s = f.stem.lower()
         if s == f"ts_{indicator}" or s == f"map_{indicator}":
-            out.append(f)
-        elif indicator in s and any(s.startswith(p) for p in ['ts_','map_']):
             out.append(f)
     return sorted(out)
 

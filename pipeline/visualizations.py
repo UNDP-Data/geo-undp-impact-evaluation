@@ -426,14 +426,22 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     # only when a valid post-disaster month exists. Sensors whose data hasn't
     # reached the event yet (e.g. monthly VIIRS composite right after a fresh
     # crisis) now get an honest 2-panel map instead of silently no map.
-    panels = [(pd.Timestamp(date1), f"Pre-Event\n{pd.Timestamp(date1).strftime('%B %Y')}")]
-    if date2 is not None:
-        panels.append((pd.Timestamp(date2), f"Post-Event\n{pd.Timestamp(date2).strftime('%B %Y')}"))
-    if pd.Timestamp(date3) not in [d for d, _ in panels]:
-        panels.append((pd.Timestamp(date3), f"Most Recent\n{pd.Timestamp(date3).strftime('%B %Y')}"))
-    if date2 is None:
-        d_last, t_last = panels[-1]
-        panels[-1] = (d_last, t_last + "\n(no post-event data yet)")
+    if date2 is None and pd.Timestamp(date1) == pd.Timestamp(date3):
+        # Degenerate case: this sensor's most recent available month IS the
+        # pre-event month (e.g. VIIRS monthly composite still lags behind a
+        # fresh event) — one honest panel, correctly labeled, not "Pre-Event".
+        panels = [(pd.Timestamp(date1),
+                  f"Latest Available\n{pd.Timestamp(date1).strftime('%B %Y')}"
+                  "\n(no post-event data yet)")]
+    else:
+        panels = [(pd.Timestamp(date1), f"Pre-Event\n{pd.Timestamp(date1).strftime('%B %Y')}")]
+        if date2 is not None:
+            panels.append((pd.Timestamp(date2), f"Post-Event\n{pd.Timestamp(date2).strftime('%B %Y')}"))
+        if pd.Timestamp(date3) not in [d for d, _ in panels]:
+            panels.append((pd.Timestamp(date3), f"Most Recent\n{pd.Timestamp(date3).strftime('%B %Y')}"))
+        if date2 is None:
+            d_last, t_last = panels[-1]
+            panels[-1] = (d_last, t_last + "\n(no post-event data yet)")
 
     gdfs = [gdf.merge(get_data(d), left_on=id_col, right_on='unit_id', how='left')
             for d, _ in panels]
