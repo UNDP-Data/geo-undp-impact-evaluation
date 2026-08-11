@@ -158,6 +158,14 @@ def main():
         create_timeseries(panel, undp_df, outcome, cfg, disaster_date, disaster_type, 
                          country_name, study_start, study_end, figures_dir)
         print(f"  ✓ ts_{outcome}.png")
+
+    # Year-over-year seasonal overlays (same months across years)
+    print("\n--- Seasonal Overlays ---")
+    for outcome in outcomes:
+        if 'nightlights' in outcome or outcome in ('ndvi', 'vh', 'vv'):
+            cfg = CORE_OUTCOMES.get(outcome, {'name': outcome, 'unit': ''})
+            if create_seasonal_overlay(panel, outcome, cfg, disaster_date, country_name, figures_dir):
+                print(f"  ✓ ts_seasonal_{outcome}.png")
     
     # Choropleth maps
     if gdf is not None:
@@ -212,6 +220,41 @@ def main():
     print(f"\n{'='*70}")
     print(f"✓ Complete: {n_figures} figures in {figures_dir}")
     print(f"{'='*70}")
+
+
+def create_seasonal_overlay(panel, outcome, cfg, disaster_date, country_name, figures_dir):
+    """One line per year over Jan-Dec: the same-months-across-years comparison.
+    Makes seasonal artifacts (rainy season, product drift) visually obvious,
+    and shows whether the post-event months sit below their own history."""
+    d = panel.groupby('period_start')[outcome].mean().dropna().reset_index()
+    if len(d) < 13:
+        return False
+    d['year'] = d['period_start'].dt.year
+    d['month'] = d['period_start'].dt.month
+    fig, ax = plt.subplots(figsize=(12, 5))
+    years = sorted(d['year'].unique())
+    cmap = plt.get_cmap('viridis', max(len(years), 2))
+    for i, y in enumerate(years):
+        sub = d[d['year'] == y]
+        is_event_year = (disaster_date.year == y)
+        ax.plot(sub['month'], sub[outcome],
+                marker='o', linewidth=3 if is_event_year else 1.5,
+                color='crimson' if is_event_year else cmap(i),
+                alpha=1.0 if is_event_year else 0.65,
+                label=f"{y}{' (event year)' if is_event_year else ''}")
+    ax.axvline(disaster_date.month, color='crimson', linestyle='--', alpha=0.5)
+    ax.set_xticks(range(1, 13))
+    ax.set_xticklabels(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])
+    ax.set_ylabel(f"{cfg['name']} ({cfg.get('unit','')})")
+    ax.set_title(f"{country_name}: {cfg['name']} — same months across years",
+                 fontsize=13, fontweight='bold')
+    ax.legend(fontsize=9)
+    ax.grid(alpha=0.3)
+    plt.savefig(figures_dir / f'ts_seasonal_{outcome}.png', dpi=150,
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    return True
+
 
 
 def create_timeseries(panel, undp_df, outcome, cfg, disaster_date, disaster_type, 
@@ -463,7 +506,9 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     else:
         norm = Normalize(vmin=vmin, vmax=vmax)
     
-    fig, axes = plt.subplots(1, len(panels), figsize=(20, 8))
+    # Match create_timeseries' 16x9 canvas: in equal-width dashboard columns
+    # images scale to column width, so a WIDER aspect ratio renders SHORTER.
+    fig, axes = plt.subplots(1, len(panels), figsize=(16, 9))
     if len(panels) == 1:
         axes = [axes]
 
