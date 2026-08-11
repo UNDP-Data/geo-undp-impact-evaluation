@@ -736,12 +736,12 @@ def find_figs(indicator, pngs):
     # A substring match here (e.g. 'nightlights' inside 'bm_nightlights')
     # would let one indicator's section pull in another's chart/map — this
     # broke the VIIRS vs Black Marble split, so match the full token only.
-    out = []
-    for f in pngs:
-        s = f.stem.lower()
-        if s in (f"ts_{indicator}", f"map_{indicator}", f"ts_seasonal_{indicator}"):
-            out.append(f)
-    return sorted(out)
+    # Deterministic display order: main chart, then map, then seasonal
+    # overlay. Plain sorted() put ts_seasonal_vv BEFORE ts_vv ("s" < "v"),
+    # so radar tabs showed the overlay in the main-chart slot.
+    order = [f"ts_{indicator}", f"map_{indicator}", f"ts_seasonal_{indicator}"]
+    by_stem = {f.stem.lower(): f for f in pngs}
+    return [by_stem[s] for s in order if s in by_stem]
 
 def collect_rasters():
     candidates = []
