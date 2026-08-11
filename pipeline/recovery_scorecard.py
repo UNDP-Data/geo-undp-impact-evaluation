@@ -143,6 +143,16 @@ def compute_unit_level_recovery(panel, col, event_date, intervention_date, highe
                 unit_trends.append(float(last3_raw[-1]) - float(last3_raw[0]))
 
     if not unit_results:
+        # Distinguish two very different situations that both yield no results:
+        #  (a) units were evaluated and none declined  -> genuinely stable
+        #  (b) there is no post-event data at all      -> nothing was evaluated
+        # Reporting (b) as "stable" tells the user we found no damage when in
+        # fact we found no data (e.g. monthly VIIRS lags a fresh event).
+        _evt = pd.Timestamp(event_date)
+        _post_start = ((_evt + pd.offsets.MonthBegin(1)) if _evt.day > 21 else _evt)
+        _post_obs = panel[(panel['period_start'] >= _post_start) & (panel[col].notna())]
+        if len(_post_obs) == 0:
+            return 'NO_POST_DATA'
         return None
 
     # Aggregate: average across affected units
@@ -268,6 +278,23 @@ def main():
             meta['higher_is_better'], meta.get('seasonal', False),
             db_scale=meta.get('db_scale', False)
         )
+
+        if r == 'NO_POST_DATA':
+            _last = panel[panel[col].notna()]['period_start'].max()
+            _last_s = pd.Timestamp(_last).strftime('%b %Y') if pd.notna(_last) else 'unknown'
+            results.append({
+                'indicator': col, 'name': meta['name'], 'short_name': meta['short'],
+                'icon': meta['icon'], 'description': meta['description'],
+                'higher_is_better': meta['higher_is_better'],
+                'baseline': 0, 'trough': 0, 'current': 0, 'undp_arrival': 0,
+                'disaster_drop_pct': 0,
+                'overall_recovery_pct': -2.0, 'undp_recovery_pct': -2.0,
+                'n_affected_units': 0, 'n_total_units': panel['unit_id'].nunique(),
+                'trend': 'no_post_data', 'last_data': _last_s,
+            })
+            print(f"  {meta['icon']} {meta['short']:15s}  No post-event data yet "
+                  f"(latest: {_last_s})")
+            continue
 
         if r is None:
             # No units had >10% drop

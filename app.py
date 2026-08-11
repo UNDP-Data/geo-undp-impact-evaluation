@@ -908,6 +908,21 @@ def render_scorecard():
         display_name = name_map.get(short, short)
         display_desc = desc_map.get(display_name, row.get('description', ''))
 
+        # -2.0 = no post-event data exists for this sensor yet (distinct from
+        # -1.0 = units were evaluated and none declined). Reporting the former
+        # as "Stable" would claim we found no damage when we found no data.
+        if overall <= -2.0:
+            _last = row.get('last_data', '')
+            _latest = f" (latest data: {_last})" if _last else ""
+            rows_html += f"""
+            <div class="sc-row">
+                <div class="sc-name">{display_name}</div>
+                <div class="sc-desc">{display_desc}</div>
+                <div class="sc-bars"><div class="sc-stable" style="color:#9aa0a6;">Awaiting data — no post-event observations yet{_latest}</div></div>
+                <div class="sc-vals"><div class="sc-stable-badge" style="background:#3a3f44;color:#c9ced3;">No data</div></div>
+            </div>"""
+            continue
+
         if overall < 0:
             rows_html += f"""
             <div class="sc-row">

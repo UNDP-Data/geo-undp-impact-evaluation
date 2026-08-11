@@ -506,7 +506,10 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     else:
         norm = Normalize(vmin=vmin, vmax=vmax)
     
-    fig, axes = plt.subplots(1, len(panels), figsize=(20, 8))
+    # Match create_timeseries' 16x9 canvas exactly: in equal-width dashboard
+    # columns, images scale to column width, so a wider aspect ratio renders
+    # SHORTER. Same figsize => same displayed height as the chart beside it.
+    fig, axes = plt.subplots(1, len(panels), figsize=(16, 9))
     if len(panels) == 1:
         axes = [axes]
 
