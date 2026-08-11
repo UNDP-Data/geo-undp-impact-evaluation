@@ -1290,6 +1290,60 @@ if mode == "📊 View Results":
     if figures_dir.exists():
         all_pngs = sorted(figures_dir.glob("*.png"))
         if all_pngs:
+            # ── Region focus: recompute trends for a subset of admin units ──
+            with st.expander("🎯 Region Focus — filter trends to affected areas"):
+                try:
+                    _rf_panel = pd.read_csv(resolve_dir("outputs", code) / "panel_data.csv",
+                                            parse_dates=['period_start'])
+                    _rf_inds = [c for c in ['nightlights', 'bm_nightlights', 'ndvi', 'vv', 'vh', 'rvi']
+                                if c in _rf_panel.columns and _rf_panel[c].notna().any()]
+                    _name_col = 'unit_name' if 'unit_name' in _rf_panel.columns else 'unit_id'
+                    _rf_ind = st.selectbox("Indicator", _rf_inds,
+                                           format_func=lambda x: NAMES.get(x, x), key="rf_ind")
+                    _rf_mode = st.radio("Regions", ["All units", "Near epicentre (≤150 km)", "Pick manually"],
+                                        horizontal=True, key="rf_mode")
+                    _sel_units = None
+                    if _rf_mode == "Near epicentre (≤150 km)":
+                        _epi = (config.get('epicenter') or {})
+                        if _epi.get('lat') is not None:
+                            import geopandas as _gpd, numpy as _np
+                            _b = config.get('boundaries', {})
+                            _bpath = Path(_b.get('file_path', ''))
+                            if not _bpath.exists():
+                                _bpath = resolve_dir("data", code) / "boundaries" / \
+                                    f"{code}_admin{_b.get('admin_level', 2)}.geojson"
+                            _gdf = _gpd.read_file(_bpath)
+                            _c = _gdf.geometry.centroid
+                            _d = _np.sqrt(((_c.y - _epi['lat']) * 111) ** 2 +
+                                          ((_c.x - _epi['lon']) * 111 * _np.cos(_np.radians(_epi['lat']))) ** 2)
+                            _sel_units = set(_gdf.loc[_d <= 150, _b.get('id_column', 'shapeID')].astype(str))
+                            st.caption(f"{len(_sel_units)} units within 150 km of the epicentre")
+                        else:
+                            st.info("No epicentre in this country's config — pick manually instead.")
+                    elif _rf_mode == "Pick manually":
+                        _opts = sorted(_rf_panel[_name_col].dropna().astype(str).unique())
+                        _picked = st.multiselect("Units", _opts, key="rf_units")
+                        if _picked:
+                            _sel_units = set(_rf_panel[_rf_panel[_name_col].astype(str).isin(_picked)]
+                                             ['unit_id'].astype(str))
+                    _sub = _rf_panel if _sel_units is None else \
+                        _rf_panel[_rf_panel['unit_id'].astype(str).isin(_sel_units)]
+                    if len(_sub) == 0:
+                        st.warning("No data for that selection.")
+                    else:
+                        _ts = _sub.groupby('period_start')[_rf_ind].mean().rename(
+                            NAMES.get(_rf_ind, _rf_ind))
+                        st.line_chart(_ts)
+                        _evt = config.get('events', {}).get('disaster_date', '')
+                        _pre = _ts[_ts.index < _evt].mean() if _evt else None
+                        _post = _ts[_ts.index >= _evt].mean() if _evt else None
+                        if _pre and _post and _pre != 0:
+                            st.caption(f"Selection: {_sub['unit_id'].nunique()} units · "
+                                       f"pre-event mean {_pre:.2f} · post-event mean {_post:.2f} "
+                                       f"({(_post - _pre) / abs(_pre) * 100:+.1f}%)")
+                except Exception as _rf_e:
+                    st.info(f"Region focus unavailable: {_rf_e}")
+
             st.markdown('<div class="section-title">Detailed Indicators</div>', unsafe_allow_html=True)
             tab_names = list(THEMES.keys())
             trend_files = sorted([f for f in all_pngs if f.name.startswith('trends_')])
