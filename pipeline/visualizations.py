@@ -510,7 +510,20 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
                   f"Latest Available\n{pd.Timestamp(date1).strftime('%B %Y')}"
                   "\n(no post-event data yet)")]
     else:
-        panels = [(pd.Timestamp(date1), f"Pre-Event\n{pd.Timestamp(date1).strftime('%B %Y')}")]
+        # Prefer a seasonal baseline for the pre panel: the SAME calendar
+        # month one year before the most recent shown month (e.g. July 2025
+        # vs July 2026), so the visual difference is real change rather than
+        # seasonality. Fall back to the latest pre-event month when the
+        # year-ago month has no data for this outcome.
+        _recent = pd.Timestamp(date3)
+        _yoy = _recent - pd.DateOffset(years=1)
+        _yoy_data = panel[(panel['period_start'] == _yoy) & (panel[outcome].notna())]
+        if len(_yoy_data) > 0 and _yoy < disaster_date:
+            date1 = _yoy
+            _pre_label = f"Same Month Last Year\n{_yoy.strftime('%B %Y')}"
+        else:
+            _pre_label = f"Pre-Event\n{pd.Timestamp(date1).strftime('%B %Y')}"
+        panels = [(pd.Timestamp(date1), _pre_label)]
         if date2 is not None:
             panels.append((pd.Timestamp(date2), f"Post-Event\n{pd.Timestamp(date2).strftime('%B %Y')}"))
         if pd.Timestamp(date3) not in [d for d, _ in panels]:

@@ -1316,7 +1316,7 @@ if mode == "📊 View Results":
                             ts = [f for f in figs if f.name.startswith('ts_')]
                             mp = [f for f in figs if f.name.startswith('map_')]
                             if ts and mp:
-                                c1, c2 = st.columns([45, 55])
+                                c1, c2 = st.columns(2)
                                 with c1: safe_image(str(ts[0]), width='stretch')
                                 with c2: safe_image(str(mp[0]), width='stretch')
                             elif ts: safe_image(str(ts[0]), width='stretch')
@@ -1393,7 +1393,7 @@ if mode == "📊 View Results":
 
     # DOWNLOADS
     if panel_path.exists():
-        c1, c2 = st.columns([45, 55])
+        c1, c2 = st.columns(2)
         with c1:
             with open(panel_path, 'rb') as f:
                 st.download_button("📥 Panel Dataset (CSV)", data=f, file_name=f"panel_data_{code}.csv", mime="text/csv", width='stretch')
