@@ -1733,11 +1733,30 @@ and resource allocation for early recovery interventions.
 
 | Source | Indicator | Coverage | Use |
 |--------|-----------|----------|-----|
-| **NASA VIIRS** | Nighttime Lights | Monthly, 500m, 2012-present | Economic activity proxy |
-| **ESA Sentinel-1** | Radar Backscatter (VV) | 12-day, 10m, 2014-present | Surface change, debris |
+| **NASA VIIRS** | Nighttime Lights (Monthly Composite) | Monthly, 500m, 2012-present | Economic activity proxy |
+| **NASA Black Marble (VNP46A2)** | Nighttime Lights (Daily, near-real-time) | Daily, 500m, ~1-week lag | Early post-crisis signal (experimental) |
+| **ESA Sentinel-1 (Copernicus)** | Radar Backscatter (VV/VH) | 12-day, 10m, 2014-present | Surface change, debris |
 | **NASA MODIS** | Vegetation Index (NDVI) | 16-day, 250m, 2000-present | Agricultural health |
 | **ACLED** | Conflict Events & Fatalities | Daily, geocoded | Security context |
 | **World Bank WDI** | GDP, GDP/capita, Population | Annual | Economic baseline |
+| **WFP (via HDX)** | Food prices by market | Monthly | Local price signals |
+
+**Black Marble processing.** The daily product (VNP46A2) is NASA's moonlight- and
+atmosphere-corrected nighttime lights. We keep only pixels NASA flags as high
+quality (`Mandatory_Quality_Flag = 0`, which removes cloud-contaminated
+retrievals), average the surviving daily images to monthly means per admin
+unit at 500 m, and store the result as a **separate indicator** — it is never
+spliced into the monthly VIIRS composite, because the two products use
+different calibrations (they correlate strongly across units, r ≈ 0.95 in
+validation, but differ in level). No additional cleaning is applied beyond
+NASA's own quality screen.
+
+**A note on radar and seasons.** Sentinel-1 radar sees *through clouds*, but it
+is not season-proof: backscatter responds to surface moisture, flooding, and
+vegetation structure, all of which follow the wet/dry cycle. This is physics,
+not an error — which is why seasonal indicators are benchmarked against the
+same calendar month of prior years, and why charts display a rainfall
+reference band.
 | **UNDP API** | Project budgets & timelines | Per project | Intervention tracking |
 | **Google Trends** | Search interest indices | Weekly/monthly | Population sentiment |
 | **WFP** | Food Prices | Monthly, market-level | Food security monitoring |

@@ -25,6 +25,27 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def _classify_title(title):
+    """Keyword fallback (EN+ES) when ml_category is missing/empty."""
+    t = str(title).lower()
+    kw = [('debris','Debris & Solid Waste'),('waste','Debris & Solid Waste'),('escombro','Debris & Solid Waste'),
+          ('health','Health & Emergency'),('emergency','Health & Emergency'),('salud','Health & Emergency'),
+          ('emergencia','Health & Emergency'),('msf','Health & Emergency'),('medic','Health & Emergency'),
+          ('social','Social Inclusion'),('inclusion','Social Inclusion'),('inclusión','Social Inclusion'),
+          ('protection','Social Inclusion'),('protección','Social Inclusion'),('comunitaria','Social Inclusion'),
+          ('cares','Social Inclusion'),
+          ('infrastructure','Infrastructure & Housing'),('housing','Infrastructure & Housing'),
+          ('rehabilit','Infrastructure & Housing'),('reconstruc','Infrastructure & Housing'),('vivienda','Infrastructure & Housing'),
+          ('livelihood','Livelihoods & Economy'),('econom','Livelihoods & Economy'),('employ','Livelihoods & Economy'),
+          ('cash','Livelihoods & Economy'),('empleo','Livelihoods & Economy'),('compras','Livelihoods & Economy'),
+          ('water','Water & Sanitation (WASH)'),('wash','Water & Sanitation (WASH)'),('agua','Water & Sanitation (WASH)'),('sanit','Water & Sanitation (WASH)'),
+          ('energy','Energy & Power'),('power','Energy & Power'),('energía','Energy & Power'),
+          ('governance','Governance & Rule of Law'),('institution','Governance & Rule of Law'),('institución','Governance & Rule of Law'),
+          ('education','Education'),('educación','Education'),('sistema','Education'),
+          ('environment','Environment'),('resilien','Environment'),('ambiente','Environment')]
+    return next((c for k, c in kw if k in t), 'Other / Unspecified')
+
+
 CATEGORY_COLORS = {
     'Education': '#3498DB', 'Debris & Solid Waste': '#795548',
     'Water & Sanitation (WASH)': '#00BCD4', 'Energy & Power': '#FFC107',
@@ -109,7 +130,9 @@ def main():
     
     # Plot each project
     for i, (_, row) in enumerate(df.iterrows()):
-        cat = row.get('ml_category', 'Other / Unspecified')
+        cat = row.get('ml_category', None)
+        if cat is None or (isinstance(cat, float) and pd.isna(cat)) or str(cat).strip() == '' or str(cat) == 'Other / Unspecified':
+            cat = _classify_title(row.get('title', ''))
         color = CATEGORY_COLORS.get(cat, '#9E9E9E')
         
         ax.barh(i, width=25, left=row['start_date'], height=0.7, 
@@ -156,7 +179,10 @@ def main():
                 fontsize=14, fontweight='bold', pad=45)
     
     # Category legend
-    cats = df['ml_category'].unique() if 'ml_category' in df.columns else []
+    if 'ml_category' in df.columns:
+        cats = df.apply(lambda r: r['ml_category'] if pd.notna(r.get('ml_category')) and str(r.get('ml_category')).strip() not in ('', 'Other / Unspecified') else _classify_title(r.get('title','')), axis=1).unique()
+    else:
+        cats = []
     patches = [mpatches.Patch(color=CATEGORY_COLORS.get(c, '#9E9E9E'), label=c) 
                for c in sorted(cats) if c in CATEGORY_COLORS]
     if patches:

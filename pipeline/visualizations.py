@@ -30,6 +30,27 @@ def load_config(config_path):
         return yaml.safe_load(f)
 
 
+def _classify_title(title):
+    """Keyword fallback (EN+ES) when ml_category is missing/empty."""
+    t = str(title).lower()
+    kw = [('debris','Debris & Solid Waste'),('waste','Debris & Solid Waste'),('escombro','Debris & Solid Waste'),
+          ('health','Health & Emergency'),('emergency','Health & Emergency'),('salud','Health & Emergency'),
+          ('emergencia','Health & Emergency'),('msf','Health & Emergency'),('medic','Health & Emergency'),
+          ('social','Social Inclusion'),('inclusion','Social Inclusion'),('inclusión','Social Inclusion'),
+          ('protection','Social Inclusion'),('protección','Social Inclusion'),('comunitaria','Social Inclusion'),
+          ('cares','Social Inclusion'),
+          ('infrastructure','Infrastructure & Housing'),('housing','Infrastructure & Housing'),
+          ('rehabilit','Infrastructure & Housing'),('reconstruc','Infrastructure & Housing'),('vivienda','Infrastructure & Housing'),
+          ('livelihood','Livelihoods & Economy'),('econom','Livelihoods & Economy'),('employ','Livelihoods & Economy'),
+          ('cash','Livelihoods & Economy'),('empleo','Livelihoods & Economy'),('compras','Livelihoods & Economy'),
+          ('water','Water & Sanitation (WASH)'),('wash','Water & Sanitation (WASH)'),('agua','Water & Sanitation (WASH)'),('sanit','Water & Sanitation (WASH)'),
+          ('energy','Energy & Power'),('power','Energy & Power'),('energía','Energy & Power'),
+          ('governance','Governance & Rule of Law'),('institution','Governance & Rule of Law'),('institución','Governance & Rule of Law'),
+          ('education','Education'),('educación','Education'),('sistema','Education'),
+          ('environment','Environment'),('resilien','Environment'),('ambiente','Environment')]
+    return next((c for k, c in kw if k in t), 'Other / Unspecified')
+
+
 CATEGORY_COLORS = {
     'Education': '#3498DB', 'Debris & Solid Waste': '#795548',
     'Water & Sanitation (WASH)': '#00BCD4', 'Energy & Power': '#FFC107',
@@ -398,8 +419,29 @@ def create_timeseries(panel, undp_df, outcome, cfg, disaster_date, disaster_type
     ax.set_xticklabels([])
     ax.grid(True, alpha=0.3)
     
+    # Rainfall reference overlay (right axis) for seasonality-affected
+    # indicators: shows how much of the wiggle is just the wet/dry cycle.
+    SEASONAL_OUTCOMES = {'ndvi', 'vv', 'vh', 'rvi', 'nightlights', 'bm_nightlights'}
+    _rain_handle = None
+    if outcome in SEASONAL_OUTCOMES and 'rainfall' in panel.columns:
+        _rain = panel.groupby('period_start')['rainfall'].mean().dropna()
+        _rain = _rain[(_rain.index >= xmin) & (_rain.index <= xmax)]
+        if len(_rain) > 2:
+            ax2 = ax.twinx()
+            ax2.fill_between(_rain.index, 0, _rain.values, alpha=0.15,
+                             color='steelblue', zorder=0)
+            ax2.set_ylabel('Rainfall (mm, right axis)', fontsize=9, color='steelblue')
+            ax2.tick_params(axis='y', labelsize=8, colors='steelblue')
+            ax2.set_ylim(0, _rain.max() * 2.5)   # keep bars low, out of the way
+            ax2.set_zorder(ax.get_zorder() - 1)
+            ax.patch.set_visible(False)
+            _rain_handle = mpatches.Patch(color='steelblue', alpha=0.3,
+                                          label='Rainfall (seasonal reference)')
+
     # Legend
     legend = [Line2D([0], [0], color=cfg['line'], linewidth=2.5, marker='o', label=country_name)]
+    if _rain_handle is not None:
+        legend.append(_rain_handle)
     if not pd.isna(pre_mean):
         legend.append(Line2D([0], [0], color='green', linestyle=':', label=f'Pre: {pre_mean:.2f}'))
     if not pd.isna(post_mean):
@@ -423,7 +465,9 @@ def create_timeseries(panel, undp_df, outcome, cfg, disaster_date, disaster_type
             monthly_markers = defaultdict(list)
             for _, row in markers.iterrows():
                 m = row['start_date'].to_period('M').to_timestamp()
-                cat = row.get('ml_category', 'Other / Unspecified')
+                cat = row.get('ml_category', None)
+                if cat is None or (isinstance(cat, float) and pd.isna(cat)) or str(cat).strip() == '' or str(cat) == 'Other / Unspecified':
+                    cat = _classify_title(row.get('title', ''))
                 monthly_markers[m].append(cat)
             
             for month, cats in monthly_markers.items():
