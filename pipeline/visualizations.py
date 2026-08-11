@@ -482,7 +482,8 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
                 label=f'{cfg["name"]} ({cfg.get("unit", "")})')
     
     fig.suptitle(f'{country_name}: {cfg["name"]}', fontsize=16, fontweight='bold', y=0.98)
-    plt.savefig(figures_dir / f'map_{outcome}.png', dpi=150, bbox_inches='tight', facecolor='white')
+    fig.subplots_adjust(top=0.80)   # room for suptitle + multi-line panel titles
+    plt.savefig(figures_dir / f'map_{outcome}.png', dpi=150, facecolor='white')
     plt.close()
     return True
 
