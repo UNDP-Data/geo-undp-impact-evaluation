@@ -739,7 +739,7 @@ def find_figs(indicator, pngs):
     out = []
     for f in pngs:
         s = f.stem.lower()
-        if s == f"ts_{indicator}" or s == f"map_{indicator}":
+        if s in (f"ts_{indicator}", f"map_{indicator}", f"ts_seasonal_{indicator}"):
             out.append(f)
     return sorted(out)
 
