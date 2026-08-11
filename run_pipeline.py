@@ -93,6 +93,16 @@ def main():
             return run_module("pipeline.acled_download", args.config, ["--email", email, "--password", key])
         print("  ⚠ ACLED credentials not set (ACLED_EMAIL / ACLED_KEY) — skipping", flush=True); return 0
 
+    def wfp():
+        f = ext / "wfp_prices.csv"
+        if f.exists():
+            print(f"  ✓ WFP prices exist ({file_rows(f)} rows) — skipping", flush=True); return 0
+        try:
+            run_module("pipeline.wfp_download", args.config)
+        except Exception:
+            print("  ⚠ WFP download failed — continuing without prices", flush=True)
+        return 0   # optional stage: never counts as an issue
+
     def gt():
         f = ext / "google_trends.csv"
         if f.exists():
@@ -129,13 +139,13 @@ def main():
         return subprocess.run(cmd).returncode
 
     stages = {
-        "boundaries": boundaries, "gee": gee, "bm": bm, "acled": acled, "gt": gt,
+        "boundaries": boundaries, "gee": gee, "bm": bm, "acled": acled, "wfp": wfp, "gt": gt,
         "undp": undp, "preprocess": preprocess, "visuals": visuals,
         "trends": trends, "scorecard": scorecard,
     }
 
     if stage == "all":
-        order = ["boundaries", "gee", "bm", "acled", "gt", "undp", "preprocess", "visuals", "trends", "scorecard"]
+        order = ["boundaries", "gee", "bm", "acled", "wfp", "gt", "undp", "preprocess", "visuals", "trends", "scorecard"]
         for st_name in order:
             print(f"\n=== {st_name.upper()} ===", flush=True)
             rc = stages[st_name]()

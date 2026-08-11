@@ -463,7 +463,7 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     else:
         norm = Normalize(vmin=vmin, vmax=vmax)
     
-    fig, axes = plt.subplots(1, len(panels), figsize=(7 * len(panels), 8))
+    fig, axes = plt.subplots(1, len(panels), figsize=(20, 8))
     if len(panels) == 1:
         axes = [axes]
 
