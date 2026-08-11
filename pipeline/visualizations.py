@@ -222,6 +222,39 @@ def main():
     print(f"{'='*70}")
 
 
+# Charts are saved tight-cropped at roughly 1.62:1. Maps are driven by country
+# geometry (Venezuela is wide and short; Myanmar is tall), so their natural
+# aspect varies with shape AND panel count. In equal-width dashboard columns an
+# image's displayed height is width/aspect, so mismatched aspects render at
+# different heights no matter what canvas size is used. Fix: crop each map tight
+# to its content (so nothing is wasted), then letterbox to the chart's aspect —
+# content stays as large as possible and displayed heights match exactly.
+CHART_ASPECT = 2148 / 1328  # ≈1.617, measured from generated time-series PNGs
+
+
+def _pad_to_chart_aspect(path, target=CHART_ASPECT):
+    """Letterbox a saved figure to `target` aspect ratio, centered on white."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return
+    try:
+        im = Image.open(path).convert("RGB")
+        w, h = im.size
+        cur = w / h
+        if abs(cur - target) < 0.01:
+            return
+        if cur > target:
+            new_w, new_h = w, int(round(w / target))
+        else:
+            new_w, new_h = int(round(h * target)), h
+        canvas = Image.new("RGB", (new_w, new_h), "white")
+        canvas.paste(im, ((new_w - w) // 2, (new_h - h) // 2))
+        canvas.save(path)
+    except Exception as e:
+        print(f"    ⚠ aspect padding skipped for {path.name}: {e}")
+
+
 def create_seasonal_overlay(panel, outcome, cfg, disaster_date, country_name, figures_dir):
     """One line per year over Jan-Dec: the same-months-across-years comparison.
     Makes seasonal artifacts (rainy season, product drift) visually obvious,
@@ -528,7 +561,9 @@ def create_map(panel, gdf, id_col, outcome, cfg, disaster_date, country_name, fi
     
     fig.suptitle(f'{country_name}: {cfg["name"]}', fontsize=16, fontweight='bold', y=0.98)
     fig.subplots_adjust(top=0.80)   # room for suptitle + multi-line panel titles
-    plt.savefig(figures_dir / f'map_{outcome}.png', dpi=150, facecolor='white')
+    _map_path = figures_dir / f'map_{outcome}.png'
+    plt.savefig(_map_path, dpi=150, bbox_inches='tight', facecolor='white')
+    _pad_to_chart_aspect(_map_path)
     plt.close()
     return True
 
