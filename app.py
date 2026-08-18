@@ -171,6 +171,7 @@ st.markdown("""
     .footer { text-align: center; padding: 1.5rem 0 .5rem 0; border-top: 1px solid #21262d; margin-top: 2.5rem; color: #484f58; font-size: .75rem; }
     div[data-baseweb="select"] > div { border-color: #30363d !important; }
     div[data-baseweb="select"]:focus-within > div { border-color: #58a6ff !important; box-shadow: none !important; }
+    section[data-testid="stSidebar"] button p { white-space: nowrap; font-size: .8rem; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} .stDeployButton {display: none;}
     header[data-testid="stHeader"] { background: #0d1117; }
 </style>
@@ -1060,6 +1061,8 @@ if mode == "📊 View Results":
             pass
 
     # ── Region focus: recompute trends for a subset of admin units ──
+    has_scorecard = render_scorecard()
+
     with st.expander("🗺️ Interactive Geospatial Analysis — trends and maps by region", expanded=True):
         try:
             _rf_panel = pd.read_csv(resolve_dir("outputs", code) / "panel_data.csv",
@@ -1073,13 +1076,13 @@ if mode == "📊 View Results":
             if 'admin1_name' in _rf_panel.columns and _rf_panel['admin1_name'].notna().any():
                 _modes.insert(1, "By state/province (Admin 1)")
             _rf_mode = st.radio("Regions", _modes, horizontal=True, key="rf_mode")
+            _sel_units = None
             if _rf_mode == "By state/province (Admin 1)":
                 _a1 = sorted(_rf_panel['admin1_name'].dropna().unique())
                 _pick_a1 = st.multiselect("States/provinces", _a1, key="rf_a1")
                 if _pick_a1:
                     _sel_units = set(_rf_panel[_rf_panel['admin1_name'].isin(_pick_a1)]
                                      ['unit_id'].astype(str))
-            _sel_units = None
             if _rf_mode == "Pick manually":
                 _opts = sorted(_rf_panel[_name_col].dropna().astype(str).unique())
                 _picked = st.multiselect("Units", _opts, key="rf_units")
@@ -1167,11 +1170,6 @@ if mode == "📊 View Results":
                             '<span>−30% · badly affected / declined</span><span>0%</span>'
                             '<span>+30% · unaffected / recovered</span></div>',
                             unsafe_allow_html=True)
-                        st.markdown(
-                            '<div style="margin-top:.6rem;font-size:.75rem;color:#8b949e;">'
-                            '<b>Data:</b> 🛰️ NASA VIIRS (monthly NTL) · 🌙 NASA Black Marble VNP46A2 (daily NTL) · '
-                            '📡 ESA Sentinel-1 / Copernicus (radar) · 🌿 MODIS (NDVI) · 🌧️ CHIRPS (rainfall) · '
-                            '⚔️ ACLED (conflict) · 🍞 WFP via HDX (prices)</div>', unsafe_allow_html=True)
                     else:
                         if len(_chg):
                             st.warning(f"Map IDs don't match the panel: {len(_chg)} units have "
@@ -1184,7 +1182,6 @@ if mode == "📊 View Results":
         except Exception as _rf_e:
             st.info(f"Region focus unavailable: {_rf_e}")
 
-    has_scorecard = render_scorecard()
     if not has_scorecard:
         st.info("Run the pipeline first using the buttons under Setup & Run.")
 
@@ -1388,6 +1385,7 @@ if mode == "📊 View Results":
             ("google.png", "Google Trends", str(resolve_dir("data", code) / "external" / "google_trends.csv")),
             ("chc.png", "Rainfall (CHIRPS)", str(resolve_dir("data", code) / f"gee_panel_{code}_centroid.csv")),
             ("wfp.png", "Food Prices (WFP)", str(resolve_dir("data", code) / "external" / "wfp_prices.csv")),
+            ("nasa.png", "Nightlights (Black Marble, daily)", str(resolve_dir("data", code) / "external" / "blackmarble_ntl.csv")),
         ]
         def _make_chip(logo, label, fpath):
             pp = Path(fpath); ok = pp.exists()
@@ -1401,15 +1399,15 @@ if mode == "📊 View Results":
                 img = f'<img src="data:image/png;base64,{b}" style="height:22px;width:22px;object-fit:contain;vertical-align:middle;"/>'
             else:
                 img = ""
-            return f'<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin:3px 4px;">{img}<span style="font-size:.73rem;color:#8b949e;">{label}</span><span style="font-size:.73rem;font-weight:600;color:{clr};">{st_txt}</span></div>'
+            return f'<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin:3px 4px;">{img}<span style="font-size:.88rem;color:#c9d1d9;">{label}</span><span style="font-size:.88rem;font-weight:600;color:{clr};">{st_txt}</span></div>'
         r1 = "".join(_make_chip(*s) for s in _row1)
         r2 = "".join(_make_chip(*s) for s in _row2)
-        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 14px;">
+        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:12px 24px;margin:0 2px;">
             <div style="font-size:.78rem;font-weight:600;color:#8b949e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Data</div>
             <div style="display:flex;flex-wrap:wrap;justify-content:center;">{r1}</div>
             <div style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:2px;">{r2}</div>
         </div>'''
-        components.html(ds_html, height=130, scrolling=False)
+        components.html(ds_html, height=150, scrolling=False)
 
     # DETAILED INDICATORS
     if figures_dir.exists():
@@ -1513,7 +1511,9 @@ if mode == "📊 View Results":
     # AI CO-PILOT IN SIDEBAR
     with st.sidebar:
         st.markdown("---")
-        st.markdown("#### \U0001f916 AI Co-Pilot")
+        st.markdown('<div style="font-weight:700;font-size:1.05rem;padding:6px 10px;border-radius:6px;'
+                    'background:linear-gradient(90deg,#f7b731,#fa8231);color:#1a1a1a;">'
+                    '\U0001f916 AI Co-Pilot</div>', unsafe_allow_html=True)
         render_copilot_sidebar(config, figures_dir, code)
 
     # DOWNLOADS
