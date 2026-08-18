@@ -1316,10 +1316,15 @@ if mode == "📊 View Results":
                         if _epi.get('lat') is not None:
                             import geopandas as _gpd, numpy as _np
                             _b = config.get('boundaries', {})
-                            _bpath = Path(_b.get('file_path', ''))
-                            if not _bpath.exists():
-                                _bpath = resolve_dir("data", code) / "boundaries" / \
-                                    f"{code}_admin{_b.get('admin_level', 2)}.geojson"
+                            _lvl = _b.get('admin_level', 2)
+                            _cands = [resolve_dir("data", code) / "boundaries" / f"{code}_admin{_lvl}.geojson",
+                                      Path(_b.get('file_path', ''))]
+                            _bpath = next((c for c in _cands if c and Path(c).exists()), None)
+                            if _bpath is None:
+                                st.info("Boundary files for this country aren't on the server "
+                                        "(they are not stored in git). Run the 🗺️ Boundaries "
+                                        "stage once in Setup & Run, or pick regions manually.")
+                                st.stop()
                             _gdf = _gpd.read_file(_bpath)
                             _c = _gdf.geometry.centroid
                             _d = _np.sqrt(((_c.y - _epi['lat']) * 111) ** 2 +
@@ -1371,10 +1376,14 @@ if mode == "📊 View Results":
                         if st.checkbox("Show map of selection (% change post vs pre-event)",
                                        key="rf_map"):
                             _b = config.get('boundaries', {})
-                            _bp = Path(_b.get('file_path', ''))
-                            if not _bp.exists():
-                                _bp = resolve_dir("data", code) / "boundaries" / \
-                                    f"{code}_admin{_b.get('admin_level', 2)}.geojson"
+                            _lvl2 = _b.get('admin_level', 2)
+                            _bcands = [resolve_dir("data", code) / "boundaries" / f"{code}_admin{_lvl2}.geojson",
+                                       Path(_b.get('file_path', ''))]
+                            _bp = next((c for c in _bcands if c and Path(c).exists()), None)
+                            if _bp is None:
+                                st.info("Map unavailable: boundary files aren't on the server for "
+                                        "this country. Run the 🗺️ Boundaries stage once in Setup & Run.")
+                                st.stop()
                             import geopandas as _g, json as _json, altair as _alt2
                             _gm = _g.read_file(_bp)
                             _idc = _b.get('id_column', 'shapeID')
@@ -1395,7 +1404,14 @@ if mode == "📊 View Results":
                                 ).properties(height=420).project(type='mercator')
                                 st.altair_chart(_map, use_container_width=True)
                             else:
-                                st.info("No pre/post data for a map yet.")
+                                if len(_chg):
+                                    st.warning(f"Map IDs don't match the panel: {len(_chg)} units have "
+                                               f"pre/post values but 0 matched the boundary file "
+                                               f"({_bp.name}). The boundary file is likely stale — "
+                                               "re-run the 🗺️ Boundaries stage for this country.")
+                                else:
+                                    st.info("No pre/post data for a map yet (no post-event "
+                                            "observations for this indicator).")
                 except Exception as _rf_e:
                     st.info(f"Region focus unavailable: {_rf_e}")
 
