@@ -1395,10 +1395,11 @@ if mode == "📊 View Results":
                             _gm = _gm[_gm['pct_change'].notna()]
                             if len(_gm):
                                 import pydeck as _pdk
-                                from matplotlib import cm as _cm, colors as _mcolors
+                                import matplotlib as _mpl
+                                from matplotlib import colors as _mcolors
                                 _v = _gm['pct_change'].clip(-30, 30)
                                 _norm = _mcolors.Normalize(vmin=-30, vmax=30)
-                                _rgba = ( _cm.get_cmap('RdYlGn')(_norm(_v)) * 255 ).astype(int)
+                                _rgba = (_mpl.colormaps['RdYlGn'](_norm(_v)) * 255).astype(int)
                                 _gm['fill'] = [list(r[:3]) + [170] for r in _rgba]
                                 _gm['label'] = _gm.get('shapeName', _gm[_idc]).astype(str)
                                 _gj2 = _json.loads(_gm[[ 'geometry', 'fill', 'label', 'pct_change']].to_json())
