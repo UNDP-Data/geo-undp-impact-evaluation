@@ -1399,15 +1399,15 @@ if mode == "📊 View Results":
                 img = f'<img src="data:image/png;base64,{b}" style="height:22px;width:22px;object-fit:contain;vertical-align:middle;"/>'
             else:
                 img = ""
-            return f'<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin:3px 4px;">{img}<span style="font-size:.88rem;color:#c9d1d9;">{label}</span><span style="font-size:.88rem;font-weight:600;color:{clr};">{st_txt}</span></div>'
+            return f'<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin:3px 4px;">{img}<span style="font-size:.73rem;color:#8b949e;">{label}</span><span style="font-size:.73rem;font-weight:600;color:{clr};">{st_txt}</span></div>'
         r1 = "".join(_make_chip(*s) for s in _row1)
         r2 = "".join(_make_chip(*s) for s in _row2)
-        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:14px 28px;margin:0 10px;">
+        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:18px 28px;margin:0 10px;">
             <div style="font-size:.78rem;font-weight:600;color:#8b949e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Data</div>
             <div style="display:flex;flex-wrap:wrap;justify-content:center;">{r1}</div>
-            <div style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:2px;">{r2}</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:8px;">{r2}</div>
         </div>'''
-        components.html(ds_html, height=150, scrolling=False)
+        components.html(ds_html, height=190, scrolling=False)
 
     # DETAILED INDICATORS
     if figures_dir.exists():
