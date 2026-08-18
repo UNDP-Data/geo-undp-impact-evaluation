@@ -1394,15 +1394,25 @@ if mode == "📊 View Results":
                             _gm['pct_change'] = _gm[_idc].astype(str).map(_chg)
                             _gm = _gm[_gm['pct_change'].notna()]
                             if len(_gm):
-                                _gj = _alt2.Data(values=_json.loads(_gm.to_json())['features'])
-                                _map = _alt2.Chart(_gj).mark_geoshape(stroke='white', strokeWidth=0.3).encode(
-                                    color=_alt2.Color('properties.pct_change:Q',
-                                                      title='% change',
-                                                      scale=_alt2.Scale(scheme='redyellowgreen', domainMid=0)),
-                                    tooltip=[_alt2.Tooltip('properties.shapeName:N', title='Unit'),
-                                             _alt2.Tooltip('properties.pct_change:Q', title='% change')]
-                                ).properties(height=420).project(type='mercator')
-                                st.altair_chart(_map, use_container_width=True)
+                                import pydeck as _pdk
+                                from matplotlib import cm as _cm, colors as _mcolors
+                                _v = _gm['pct_change'].clip(-30, 30)
+                                _norm = _mcolors.Normalize(vmin=-30, vmax=30)
+                                _rgba = ( _cm.get_cmap('RdYlGn')(_norm(_v)) * 255 ).astype(int)
+                                _gm['fill'] = [list(r[:3]) + [170] for r in _rgba]
+                                _gm['label'] = _gm.get('shapeName', _gm[_idc]).astype(str)
+                                _gj2 = _json.loads(_gm[[ 'geometry', 'fill', 'label', 'pct_change']].to_json())
+                                _layer = _pdk.Layer("GeoJsonLayer", _gj2,
+                                                    get_fill_color="properties.fill",
+                                                    get_line_color=[255, 255, 255],
+                                                    line_width_min_pixels=1, pickable=True)
+                                _c = _gm.geometry.union_all().centroid
+                                st.pydeck_chart(_pdk.Deck(layers=[_layer],
+                                    initial_view_state=_pdk.ViewState(latitude=_c.y, longitude=_c.x, zoom=5),
+                                    map_style=None,
+                                    tooltip={"html": "<b>{label}</b><br/>% change: {pct_change}"}))
+                                st.caption("Green = brighter/recovered vs pre-event · Red = decline "
+                                           "(scale capped at ±30%)")
                             else:
                                 if len(_chg):
                                     st.warning(f"Map IDs don't match the panel: {len(_chg)} units have "
