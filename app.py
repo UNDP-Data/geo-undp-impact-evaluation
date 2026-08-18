@@ -1358,12 +1358,15 @@ if mode == "📊 View Results":
                             st.altair_chart(_line.properties(height=320),
                                             use_container_width=True)
                         _evt = config.get('events', {}).get('disaster_date', '')
-                        _pre = _ts[_ts.index < _evt].mean() if _evt else None
-                        _post = _ts[_ts.index >= _evt].mean() if _evt else None
-                        if _pre and _post and _pre != 0:
-                            st.caption(f"Selection: {_sub['unit_id'].nunique()} units · "
-                                       f"pre-event mean {_pre:.2f} · post-event mean {_post:.2f} "
-                                       f"({(_post - _pre) / abs(_pre) * 100:+.1f}%)")
+                        if _evt:
+                            _ed = pd.Timestamp(_evt)
+                            _pre = _ts.loc[_ts['date'] < _ed, 'value'].mean()
+                            _post = _ts.loc[_ts['date'] >= _ed, 'value'].mean()
+                            if pd.notna(_pre) and pd.notna(_post) and _pre != 0:
+                                st.caption(f"Selection: {_sub['unit_id'].nunique()} of "
+                                           f"{_rf_panel['unit_id'].nunique()} units · "
+                                           f"pre-event mean {_pre:.2f} · post-event mean {_post:.2f} "
+                                           f"({(_post - _pre) / abs(_pre) * 100:+.1f}%)")
                         # Interactive map: % change post vs pre, per unit
                         if st.checkbox("Show map of selection (% change post vs pre-event)",
                                        key="rf_map"):
@@ -1375,7 +1378,7 @@ if mode == "📊 View Results":
                             import geopandas as _g, json as _json, altair as _alt2
                             _gm = _g.read_file(_bp)
                             _idc = _b.get('id_column', 'shapeID')
-                            _e = config.get('events', {}).get('disaster_date', '')
+                            _e = pd.Timestamp(config.get('events', {}).get('disaster_date', ''))
                             _pre_m = _sub[_sub['period_start'] < _e].groupby('unit_id')[_rf_ind].mean()
                             _post_m = _sub[_sub['period_start'] >= _e].groupby('unit_id')[_rf_ind].mean()
                             _chg = ((_post_m - _pre_m) / _pre_m.abs() * 100).round(1).rename('pct_change')
