@@ -1300,8 +1300,16 @@ if mode == "📊 View Results":
                     _name_col = 'unit_name' if 'unit_name' in _rf_panel.columns else 'unit_id'
                     _rf_ind = st.selectbox("Indicator", _rf_inds,
                                            format_func=lambda x: NAMES.get(x, x), key="rf_ind")
-                    _rf_mode = st.radio("Regions", ["All units", "Near epicentre (≤150 km)", "Pick manually"],
-                                        horizontal=True, key="rf_mode")
+                    _modes = ["All units", "Near epicentre (≤150 km)", "Pick manually"]
+                    if 'admin1_name' in _rf_panel.columns and _rf_panel['admin1_name'].notna().any():
+                        _modes.insert(1, "By state/province (Admin 1)")
+                    _rf_mode = st.radio("Regions", _modes, horizontal=True, key="rf_mode")
+                    if _rf_mode == "By state/province (Admin 1)":
+                        _a1 = sorted(_rf_panel['admin1_name'].dropna().unique())
+                        _pick_a1 = st.multiselect("States/provinces", _a1, key="rf_a1")
+                        if _pick_a1:
+                            _sel_units = set(_rf_panel[_rf_panel['admin1_name'].isin(_pick_a1)]
+                                             ['unit_id'].astype(str))
                     _sel_units = None
                     if _rf_mode == "Near epicentre (≤150 km)":
                         _epi = (config.get('epicenter') or {})
@@ -1331,9 +1339,24 @@ if mode == "📊 View Results":
                     if len(_sub) == 0:
                         st.warning("No data for that selection.")
                     else:
-                        _ts = _sub.groupby('period_start')[_rf_ind].mean().rename(
-                            NAMES.get(_rf_ind, _rf_ind))
-                        st.line_chart(_ts)
+                        _ts = _sub.groupby('period_start')[_rf_ind].mean().reset_index()
+                        _ts.columns = ['date', 'value']
+                        import altair as _alt
+                        _line = _alt.Chart(_ts).mark_line(point=True).encode(
+                            x=_alt.X('date:T', title=None),
+                            y=_alt.Y('value:Q', title=NAMES.get(_rf_ind, _rf_ind),
+                                     scale=_alt.Scale(zero=False)))
+                        _evt_d = config.get('events', {}).get('disaster_date')
+                        if _evt_d:
+                            _rule = _alt.Chart(pd.DataFrame({'d': [_evt_d]})).mark_rule(
+                                color='red', strokeDash=[6, 4], size=2).encode(x='d:T')
+                            _lbl = config.get('events', {}).get('disaster_type', 'Event')
+                            st.altair_chart((_line + _rule).properties(height=320),
+                                            use_container_width=True)
+                            st.caption(f"Red line: {_lbl} — {_evt_d}")
+                        else:
+                            st.altair_chart(_line.properties(height=320),
+                                            use_container_width=True)
                         _evt = config.get('events', {}).get('disaster_date', '')
                         _pre = _ts[_ts.index < _evt].mean() if _evt else None
                         _post = _ts[_ts.index >= _evt].mean() if _evt else None
@@ -1341,6 +1364,35 @@ if mode == "📊 View Results":
                             st.caption(f"Selection: {_sub['unit_id'].nunique()} units · "
                                        f"pre-event mean {_pre:.2f} · post-event mean {_post:.2f} "
                                        f"({(_post - _pre) / abs(_pre) * 100:+.1f}%)")
+                        # Interactive map: % change post vs pre, per unit
+                        if st.checkbox("Show map of selection (% change post vs pre-event)",
+                                       key="rf_map"):
+                            _b = config.get('boundaries', {})
+                            _bp = Path(_b.get('file_path', ''))
+                            if not _bp.exists():
+                                _bp = resolve_dir("data", code) / "boundaries" / \
+                                    f"{code}_admin{_b.get('admin_level', 2)}.geojson"
+                            import geopandas as _g, json as _json, altair as _alt2
+                            _gm = _g.read_file(_bp)
+                            _idc = _b.get('id_column', 'shapeID')
+                            _e = config.get('events', {}).get('disaster_date', '')
+                            _pre_m = _sub[_sub['period_start'] < _e].groupby('unit_id')[_rf_ind].mean()
+                            _post_m = _sub[_sub['period_start'] >= _e].groupby('unit_id')[_rf_ind].mean()
+                            _chg = ((_post_m - _pre_m) / _pre_m.abs() * 100).round(1).rename('pct_change')
+                            _gm['pct_change'] = _gm[_idc].astype(str).map(_chg)
+                            _gm = _gm[_gm['pct_change'].notna()]
+                            if len(_gm):
+                                _gj = _alt2.Data(values=_json.loads(_gm.to_json())['features'])
+                                _map = _alt2.Chart(_gj).mark_geoshape(stroke='white', strokeWidth=0.3).encode(
+                                    color=_alt2.Color('properties.pct_change:Q',
+                                                      title='% change',
+                                                      scale=_alt2.Scale(scheme='redyellowgreen', domainMid=0)),
+                                    tooltip=[_alt2.Tooltip('properties.shapeName:N', title='Unit'),
+                                             _alt2.Tooltip('properties.pct_change:Q', title='% change')]
+                                ).properties(height=420).project(type='mercator')
+                                st.altair_chart(_map, use_container_width=True)
+                            else:
+                                st.info("No pre/post data for a map yet.")
                 except Exception as _rf_e:
                     st.info(f"Region focus unavailable: {_rf_e}")
 
@@ -1657,7 +1709,14 @@ elif mode == "⚙️ Setup & Run":
                 else:
                     # surface the real reason, not just a generic label
                     tail = chr(10).join(log[-15:])
-                    st.error("Step failed: " + desc + ". Last output:" + chr(10) + tail)
+                    if "Pipeline finished" in out or "✓ COMPLETE" in out:
+                        import re as _re
+                        _m = _re.search(r"Issues:\s*(\d+)", out)
+                        _n = _m.group(1) if _m else "some"
+                        st.warning(f"{desc} completed. {_n} non-critical stage issue(s) — "
+                                   "results were produced; see the log above for details.")
+                    else:
+                        st.error("Step failed: " + desc + ". Last output:" + chr(10) + tail)
                     s.update(label="Error: " + desc, state="error")
             except Exception as e:
                 st.error(str(e)[:300])

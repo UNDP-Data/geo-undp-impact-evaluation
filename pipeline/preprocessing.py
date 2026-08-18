@@ -225,6 +225,27 @@ class PanelDataBuilder:
         print(f"  Units: {panel['unit_id'].nunique()}")
         
         # ==========================================================================
+        # TAG PARENT ADMIN1 REGION (for dashboard admin-level filters)
+        # ==========================================================================
+        try:
+            adm1_path = self.data_dir / "boundaries" / f"{self.country_code.lower()}_admin1.geojson"
+            b_path = Path(self.config.get('boundaries', {}).get('file_path', ''))
+            if adm1_path.exists() and b_path.exists():
+                import geopandas as gpd
+                units = gpd.read_file(b_path)
+                id_col = self.config['boundaries'].get('id_column', 'shapeID')
+                units = units[[id_col, 'geometry']].copy()
+                units['geometry'] = units.geometry.centroid
+                adm1 = gpd.read_file(adm1_path)[['shapeName', 'geometry']].rename(
+                    columns={'shapeName': 'admin1_name'})
+                joined = gpd.sjoin(units, adm1, how='left', predicate='within')
+                lut = dict(zip(joined[id_col].astype(str), joined['admin1_name']))
+                panel['admin1_name'] = panel['unit_id'].astype(str).map(lut)
+                print(f"  ✓ Tagged admin1 regions ({panel['admin1_name'].nunique()} states)")
+        except Exception as _e:
+            print(f"  ⚠ Admin1 tagging skipped: {_e}")
+
+        # ==========================================================================
         # MERGE BLACK MARBLE DAILY NTL (near-real-time, separate indicator)
         # ==========================================================================
         bm_path = self.data_dir / "external" / "blackmarble_ntl.csv"

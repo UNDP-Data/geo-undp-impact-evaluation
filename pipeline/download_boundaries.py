@@ -151,6 +151,16 @@ def main():
         print(f"   https://data.humdata.org/dataset/cod-ab-{country_code.lower()}")
         return 1
 
+    # Also fetch ADM1 (states/provinces) so preprocessing can tag each unit
+    # with its parent region for admin-level filtering in the dashboard.
+    if used_level > 1:
+        adm1 = output_dir / f"{country_code.lower()}_admin1.geojson"
+        if not adm1.exists():
+            try:
+                download_geoboundaries(country_code, 1, output_dir)
+            except Exception as _e1:
+                print(f"  ⚠ ADM1 fetch skipped ({_e1})")
+
     if used_level != admin_level:
         print(f"\n  ⚠ Requested ADM{admin_level} does not exist for {country_code}.")
         print(f"  ✓ Using ADM{used_level} instead — updating config to match.")
