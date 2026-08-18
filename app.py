@@ -1059,6 +1059,131 @@ if mode == "📊 View Results":
         except Exception:
             pass
 
+    # ── Region focus: recompute trends for a subset of admin units ──
+    with st.expander("🗺️ Interactive Geospatial Analysis — trends and maps by region", expanded=True):
+        try:
+            _rf_panel = pd.read_csv(resolve_dir("outputs", code) / "panel_data.csv",
+                                    parse_dates=['period_start'])
+            _rf_inds = [c for c in ['nightlights', 'bm_nightlights', 'ndvi', 'vv', 'vh', 'rvi']
+                        if c in _rf_panel.columns and _rf_panel[c].notna().any()]
+            _name_col = 'unit_name' if 'unit_name' in _rf_panel.columns else 'unit_id'
+            _rf_ind = st.selectbox("Indicator", _rf_inds,
+                                   format_func=lambda x: NAMES.get(x, x), key="rf_ind")
+            _modes = ["All units", "Pick manually"]
+            if 'admin1_name' in _rf_panel.columns and _rf_panel['admin1_name'].notna().any():
+                _modes.insert(1, "By state/province (Admin 1)")
+            _rf_mode = st.radio("Regions", _modes, horizontal=True, key="rf_mode")
+            if _rf_mode == "By state/province (Admin 1)":
+                _a1 = sorted(_rf_panel['admin1_name'].dropna().unique())
+                _pick_a1 = st.multiselect("States/provinces", _a1, key="rf_a1")
+                if _pick_a1:
+                    _sel_units = set(_rf_panel[_rf_panel['admin1_name'].isin(_pick_a1)]
+                                     ['unit_id'].astype(str))
+            _sel_units = None
+            if _rf_mode == "Pick manually":
+                _opts = sorted(_rf_panel[_name_col].dropna().astype(str).unique())
+                _picked = st.multiselect("Units", _opts, key="rf_units")
+                if _picked:
+                    _sel_units = set(_rf_panel[_rf_panel[_name_col].astype(str).isin(_picked)]
+                                     ['unit_id'].astype(str))
+            _sub = _rf_panel if _sel_units is None else \
+                _rf_panel[_rf_panel['unit_id'].astype(str).isin(_sel_units)]
+            if len(_sub) == 0:
+                st.warning("No data for that selection.")
+            else:
+                _ts = _sub.groupby('period_start')[_rf_ind].mean().reset_index()
+                _ts.columns = ['date', 'value']
+                import altair as _alt
+                _line = _alt.Chart(_ts).mark_line(point=True).encode(
+                    x=_alt.X('date:T', title=None),
+                    y=_alt.Y('value:Q', title=NAMES.get(_rf_ind, _rf_ind),
+                             scale=_alt.Scale(zero=False)))
+                _evt_d = config.get('events', {}).get('disaster_date')
+                if _evt_d:
+                    _rule = _alt.Chart(pd.DataFrame({'d': [_evt_d]})).mark_rule(
+                        color='red', strokeDash=[6, 4], size=2).encode(x='d:T')
+                    _lbl = config.get('events', {}).get('disaster_type', 'Event')
+                    st.altair_chart((_line + _rule).properties(height=320),
+                                    use_container_width=True)
+                    st.caption(f"Red line: {_lbl} — {_evt_d}")
+                else:
+                    st.altair_chart(_line.properties(height=320),
+                                    use_container_width=True)
+                _evt = config.get('events', {}).get('disaster_date', '')
+                if _evt:
+                    _ed = pd.Timestamp(_evt)
+                    _pre = _ts.loc[_ts['date'] < _ed, 'value'].mean()
+                    _post = _ts.loc[_ts['date'] >= _ed, 'value'].mean()
+                    if pd.notna(_pre) and pd.notna(_post) and _pre != 0:
+                        st.caption(f"Selection: {_sub['unit_id'].nunique()} of "
+                                   f"{_rf_panel['unit_id'].nunique()} units · "
+                                   f"pre-event mean {_pre:.2f} · post-event mean {_post:.2f} "
+                                   f"({(_post - _pre) / abs(_pre) * 100:+.1f}%)")
+                # Interactive map: % change post vs pre, per unit
+                if st.checkbox("Show map of selection (% change post vs pre-event)",
+                               key="rf_map"):
+                    _b = config.get('boundaries', {})
+                    _lvl2 = _b.get('admin_level', 2)
+                    _bcands = [resolve_dir("data", code) / "boundaries" / f"{code}_admin{_lvl2}.geojson",
+                               Path(_b.get('file_path', ''))]
+                    _bp = next((c for c in _bcands if c and Path(c).exists()), None)
+                    if _bp is None:
+                        st.info("Map unavailable: boundary files aren't on the server for "
+                                "this country. Run the 🗺️ Boundaries stage once in Setup & Run.")
+                        st.stop()
+                    import geopandas as _g, json as _json, altair as _alt2
+                    _gm = _g.read_file(_bp)
+                    _idc = _b.get('id_column', 'shapeID')
+                    _e = pd.Timestamp(config.get('events', {}).get('disaster_date', ''))
+                    _pre_m = _sub[_sub['period_start'] < _e].groupby('unit_id')[_rf_ind].mean()
+                    _post_m = _sub[_sub['period_start'] >= _e].groupby('unit_id')[_rf_ind].mean()
+                    _chg = ((_post_m - _pre_m) / _pre_m.abs() * 100).round(1).rename('pct_change')
+                    _gm['pct_change'] = _gm[_idc].astype(str).map(_chg)
+                    _gm = _gm[_gm['pct_change'].notna()]
+                    if len(_gm):
+                        import pydeck as _pdk
+                        import matplotlib as _mpl
+                        from matplotlib import colors as _mcolors
+                        _v = _gm['pct_change'].clip(-30, 30)
+                        _norm = _mcolors.Normalize(vmin=-30, vmax=30)
+                        _rgba = (_mpl.colormaps['RdYlGn'](_norm(_v)) * 255).astype(int)
+                        _gm['fill'] = [[int(c) for c in r[:3]] + [170] for r in _rgba]
+                        _gm['pct_change'] = _gm['pct_change'].astype(float)
+                        _gm['label'] = _gm.get('shapeName', _gm[_idc]).astype(str)
+                        _gj2 = _json.loads(_gm[[ 'geometry', 'fill', 'label', 'pct_change']].to_json())
+                        _layer = _pdk.Layer("GeoJsonLayer", _gj2,
+                                            get_fill_color="properties.fill",
+                                            get_line_color=[255, 255, 255],
+                                            line_width_min_pixels=1, pickable=True)
+                        _c = _gm.geometry.union_all().centroid
+                        st.pydeck_chart(_pdk.Deck(layers=[_layer],
+                            initial_view_state=_pdk.ViewState(latitude=_c.y, longitude=_c.x, zoom=5),
+                            map_style=None,
+                            tooltip={"html": "<b>{label}</b><br/>% change: {pct_change}"}))
+                        st.markdown(
+                            '<div style="margin:.3rem 0 .1rem 0;height:14px;border-radius:4px;'
+                            'background:linear-gradient(to right,#a50026,#fdae61,#fefebd,#a6d96a,#158f4b);"></div>'
+                            '<div style="display:flex;justify-content:space-between;font-size:.75rem;color:#c9d1d9;">'
+                            '<span>−30% · badly affected / declined</span><span>0%</span>'
+                            '<span>+30% · unaffected / recovered</span></div>',
+                            unsafe_allow_html=True)
+                        st.markdown(
+                            '<div style="margin-top:.6rem;font-size:.75rem;color:#8b949e;">'
+                            '<b>Data:</b> 🛰️ NASA VIIRS (monthly NTL) · 🌙 NASA Black Marble VNP46A2 (daily NTL) · '
+                            '📡 ESA Sentinel-1 / Copernicus (radar) · 🌿 MODIS (NDVI) · 🌧️ CHIRPS (rainfall) · '
+                            '⚔️ ACLED (conflict) · 🍞 WFP via HDX (prices)</div>', unsafe_allow_html=True)
+                    else:
+                        if len(_chg):
+                            st.warning(f"Map IDs don't match the panel: {len(_chg)} units have "
+                                       f"pre/post values but 0 matched the boundary file "
+                                       f"({_bp.name}). The boundary file is likely stale — "
+                                       "re-run the 🗺️ Boundaries stage for this country.")
+                        else:
+                            st.info("No pre/post data for a map yet (no post-event "
+                                    "observations for this indicator).")
+        except Exception as _rf_e:
+            st.info(f"Region focus unavailable: {_rf_e}")
+
     has_scorecard = render_scorecard()
     if not has_scorecard:
         st.info("Run the pipeline first using the buttons under Setup & Run.")
@@ -1068,10 +1193,10 @@ if mode == "📊 View Results":
         undp_csv = resolve_dir("data", code) / "external" / "undp_projects.csv"
         # UNDP picker moved above scorecard
 
-    # METHODOLOGY & DISCLAIMERS
+    # METHODOLOGY & DISCLAIMERS (collapsible)
     if has_scorecard:
+      with st.expander("📐 Methodology & Assumptions"):
         disc_html = """<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1.2rem 1.6rem;margin:.5rem 0;">
-            <div style="font-size:.88rem;font-weight:600;color:#e6edf3;margin-bottom:.6rem;">Methodology & Assumptions</div>
             <div style="font-size:.78rem;color:#c9d1d9;line-height:1.7;">
                 <p style="margin:0 0 .5rem 0;"><b>What this shows:</b> Observed changes in satellite indicators before and after disaster events and UNDP interventions. These are correlations, not causal estimates. UNDP is one of many actors on the ground, and observed recovery reflects the combined contributions of multiple organisations, government efforts, and local communities.</p>
                 <p style="margin:0 0 .5rem 0;"><b>How recovery is calculated:</b> &ldquo;Targeted Recovery&rdquo; measures how much of the initial decline (from the pre-event average to the single worst post-event month) has been regained. &ldquo;Since Selected Project&rdquo; measures recovery after the intervention start date. Both are capped at 100%, and &ldquo;Since Programme&rdquo; never exceeds &ldquo;Overall&rdquo;. Only units with &gt;10% decline are included; others are &ldquo;Stable&rdquo;. For nightlights, the baseline is the simple mean of all pre-event months. For vegetation (NDVI), a year-over-year seasonal adjustment is applied. For events occurring in the last week of a month, the first full post-event month is used as the starting point.</p>
@@ -1290,143 +1415,6 @@ if mode == "📊 View Results":
     if figures_dir.exists():
         all_pngs = sorted(figures_dir.glob("*.png"))
         if all_pngs:
-            # ── Region focus: recompute trends for a subset of admin units ──
-            with st.expander("🎯 Region Focus — filter trends to affected areas"):
-                try:
-                    _rf_panel = pd.read_csv(resolve_dir("outputs", code) / "panel_data.csv",
-                                            parse_dates=['period_start'])
-                    _rf_inds = [c for c in ['nightlights', 'bm_nightlights', 'ndvi', 'vv', 'vh', 'rvi']
-                                if c in _rf_panel.columns and _rf_panel[c].notna().any()]
-                    _name_col = 'unit_name' if 'unit_name' in _rf_panel.columns else 'unit_id'
-                    _rf_ind = st.selectbox("Indicator", _rf_inds,
-                                           format_func=lambda x: NAMES.get(x, x), key="rf_ind")
-                    _modes = ["All units", "Near epicentre (≤150 km)", "Pick manually"]
-                    if 'admin1_name' in _rf_panel.columns and _rf_panel['admin1_name'].notna().any():
-                        _modes.insert(1, "By state/province (Admin 1)")
-                    _rf_mode = st.radio("Regions", _modes, horizontal=True, key="rf_mode")
-                    if _rf_mode == "By state/province (Admin 1)":
-                        _a1 = sorted(_rf_panel['admin1_name'].dropna().unique())
-                        _pick_a1 = st.multiselect("States/provinces", _a1, key="rf_a1")
-                        if _pick_a1:
-                            _sel_units = set(_rf_panel[_rf_panel['admin1_name'].isin(_pick_a1)]
-                                             ['unit_id'].astype(str))
-                    _sel_units = None
-                    if _rf_mode == "Near epicentre (≤150 km)":
-                        _epi = (config.get('epicenter') or {})
-                        if _epi.get('lat') is not None:
-                            import geopandas as _gpd, numpy as _np
-                            _b = config.get('boundaries', {})
-                            _lvl = _b.get('admin_level', 2)
-                            _cands = [resolve_dir("data", code) / "boundaries" / f"{code}_admin{_lvl}.geojson",
-                                      Path(_b.get('file_path', ''))]
-                            _bpath = next((c for c in _cands if c and Path(c).exists()), None)
-                            if _bpath is None:
-                                st.info("Boundary files for this country aren't on the server "
-                                        "(they are not stored in git). Run the 🗺️ Boundaries "
-                                        "stage once in Setup & Run, or pick regions manually.")
-                                st.stop()
-                            _gdf = _gpd.read_file(_bpath)
-                            _c = _gdf.geometry.centroid
-                            _d = _np.sqrt(((_c.y - _epi['lat']) * 111) ** 2 +
-                                          ((_c.x - _epi['lon']) * 111 * _np.cos(_np.radians(_epi['lat']))) ** 2)
-                            _sel_units = set(_gdf.loc[_d <= 150, _b.get('id_column', 'shapeID')].astype(str))
-                            st.caption(f"{len(_sel_units)} units within 150 km of the epicentre")
-                        else:
-                            st.info("No epicentre in this country's config — pick manually instead.")
-                    elif _rf_mode == "Pick manually":
-                        _opts = sorted(_rf_panel[_name_col].dropna().astype(str).unique())
-                        _picked = st.multiselect("Units", _opts, key="rf_units")
-                        if _picked:
-                            _sel_units = set(_rf_panel[_rf_panel[_name_col].astype(str).isin(_picked)]
-                                             ['unit_id'].astype(str))
-                    _sub = _rf_panel if _sel_units is None else \
-                        _rf_panel[_rf_panel['unit_id'].astype(str).isin(_sel_units)]
-                    if len(_sub) == 0:
-                        st.warning("No data for that selection.")
-                    else:
-                        _ts = _sub.groupby('period_start')[_rf_ind].mean().reset_index()
-                        _ts.columns = ['date', 'value']
-                        import altair as _alt
-                        _line = _alt.Chart(_ts).mark_line(point=True).encode(
-                            x=_alt.X('date:T', title=None),
-                            y=_alt.Y('value:Q', title=NAMES.get(_rf_ind, _rf_ind),
-                                     scale=_alt.Scale(zero=False)))
-                        _evt_d = config.get('events', {}).get('disaster_date')
-                        if _evt_d:
-                            _rule = _alt.Chart(pd.DataFrame({'d': [_evt_d]})).mark_rule(
-                                color='red', strokeDash=[6, 4], size=2).encode(x='d:T')
-                            _lbl = config.get('events', {}).get('disaster_type', 'Event')
-                            st.altair_chart((_line + _rule).properties(height=320),
-                                            use_container_width=True)
-                            st.caption(f"Red line: {_lbl} — {_evt_d}")
-                        else:
-                            st.altair_chart(_line.properties(height=320),
-                                            use_container_width=True)
-                        _evt = config.get('events', {}).get('disaster_date', '')
-                        if _evt:
-                            _ed = pd.Timestamp(_evt)
-                            _pre = _ts.loc[_ts['date'] < _ed, 'value'].mean()
-                            _post = _ts.loc[_ts['date'] >= _ed, 'value'].mean()
-                            if pd.notna(_pre) and pd.notna(_post) and _pre != 0:
-                                st.caption(f"Selection: {_sub['unit_id'].nunique()} of "
-                                           f"{_rf_panel['unit_id'].nunique()} units · "
-                                           f"pre-event mean {_pre:.2f} · post-event mean {_post:.2f} "
-                                           f"({(_post - _pre) / abs(_pre) * 100:+.1f}%)")
-                        # Interactive map: % change post vs pre, per unit
-                        if st.checkbox("Show map of selection (% change post vs pre-event)",
-                                       key="rf_map"):
-                            _b = config.get('boundaries', {})
-                            _lvl2 = _b.get('admin_level', 2)
-                            _bcands = [resolve_dir("data", code) / "boundaries" / f"{code}_admin{_lvl2}.geojson",
-                                       Path(_b.get('file_path', ''))]
-                            _bp = next((c for c in _bcands if c and Path(c).exists()), None)
-                            if _bp is None:
-                                st.info("Map unavailable: boundary files aren't on the server for "
-                                        "this country. Run the 🗺️ Boundaries stage once in Setup & Run.")
-                                st.stop()
-                            import geopandas as _g, json as _json, altair as _alt2
-                            _gm = _g.read_file(_bp)
-                            _idc = _b.get('id_column', 'shapeID')
-                            _e = pd.Timestamp(config.get('events', {}).get('disaster_date', ''))
-                            _pre_m = _sub[_sub['period_start'] < _e].groupby('unit_id')[_rf_ind].mean()
-                            _post_m = _sub[_sub['period_start'] >= _e].groupby('unit_id')[_rf_ind].mean()
-                            _chg = ((_post_m - _pre_m) / _pre_m.abs() * 100).round(1).rename('pct_change')
-                            _gm['pct_change'] = _gm[_idc].astype(str).map(_chg)
-                            _gm = _gm[_gm['pct_change'].notna()]
-                            if len(_gm):
-                                import pydeck as _pdk
-                                import matplotlib as _mpl
-                                from matplotlib import colors as _mcolors
-                                _v = _gm['pct_change'].clip(-30, 30)
-                                _norm = _mcolors.Normalize(vmin=-30, vmax=30)
-                                _rgba = (_mpl.colormaps['RdYlGn'](_norm(_v)) * 255).astype(int)
-                                _gm['fill'] = [[int(c) for c in r[:3]] + [170] for r in _rgba]
-                                _gm['pct_change'] = _gm['pct_change'].astype(float)
-                                _gm['label'] = _gm.get('shapeName', _gm[_idc]).astype(str)
-                                _gj2 = _json.loads(_gm[[ 'geometry', 'fill', 'label', 'pct_change']].to_json())
-                                _layer = _pdk.Layer("GeoJsonLayer", _gj2,
-                                                    get_fill_color="properties.fill",
-                                                    get_line_color=[255, 255, 255],
-                                                    line_width_min_pixels=1, pickable=True)
-                                _c = _gm.geometry.union_all().centroid
-                                st.pydeck_chart(_pdk.Deck(layers=[_layer],
-                                    initial_view_state=_pdk.ViewState(latitude=_c.y, longitude=_c.x, zoom=5),
-                                    map_style=None,
-                                    tooltip={"html": "<b>{label}</b><br/>% change: {pct_change}"}))
-                                st.caption("Green = brighter/recovered vs pre-event · Red = decline "
-                                           "(scale capped at ±30%)")
-                            else:
-                                if len(_chg):
-                                    st.warning(f"Map IDs don't match the panel: {len(_chg)} units have "
-                                               f"pre/post values but 0 matched the boundary file "
-                                               f"({_bp.name}). The boundary file is likely stale — "
-                                               "re-run the 🗺️ Boundaries stage for this country.")
-                                else:
-                                    st.info("No pre/post data for a map yet (no post-event "
-                                            "observations for this indicator).")
-                except Exception as _rf_e:
-                    st.info(f"Region focus unavailable: {_rf_e}")
-
             st.markdown('<div class="section-title">Detailed Indicators</div>', unsafe_allow_html=True)
             tab_names = list(THEMES.keys())
             trend_files = sorted([f for f in all_pngs if f.name.startswith('trends_')])
@@ -1823,13 +1811,13 @@ and resource allocation for early recovery interventions.
 
 | Source | Indicator | Coverage | Use |
 |--------|-----------|----------|-----|
-| **NASA VIIRS** | Nighttime Lights (Monthly Composite) | Monthly, 500m, 2012-present | Economic activity proxy |
-| **NASA Black Marble (VNP46A2)** | Nighttime Lights (Daily, near-real-time) | Daily, 500m, ~1-week lag | Early post-crisis signal (experimental) |
-| **ESA Sentinel-1 (Copernicus)** | Radar Backscatter (VV/VH) | 12-day, 10m, 2014-present | Surface change, debris |
+| 🛰️ **NASA VIIRS** | Nighttime Lights (Monthly Composite) | Monthly, 500m, 2012-present | Economic activity proxy |
+| 🌙 **NASA Black Marble (VNP46A2)** | Nighttime Lights (Daily, near-real-time) | Daily, 500m, ~1-week lag | Early post-crisis signal (experimental) |
+| 📡 **ESA Sentinel-1 (Copernicus)** | Radar Backscatter (VV/VH) | 12-day, 10m, 2014-present | Surface change, debris |
 | **NASA MODIS** | Vegetation Index (NDVI) | 16-day, 250m, 2000-present | Agricultural health |
 | **ACLED** | Conflict Events & Fatalities | Daily, geocoded | Security context |
 | **World Bank WDI** | GDP, GDP/capita, Population | Annual | Economic baseline |
-| **WFP (via HDX)** | Food prices by market | Monthly | Local price signals |
+| 🍞 **WFP (via HDX)** | Food prices by market | Monthly | Local price signals |
 
 **Black Marble processing.** The daily product (VNP46A2) is NASA's moonlight- and
 atmosphere-corrected nighttime lights. We keep only pixels NASA flags as high
