@@ -1063,7 +1063,7 @@ if mode == "📊 View Results":
     # ── Region focus: recompute trends for a subset of admin units ──
     has_scorecard = render_scorecard()
 
-    with st.expander("🗺️ Interactive Geospatial Analysis — trends and maps by region", expanded=True):
+    with st.expander("🌍 Interactive Geospatial Analysis — trends and maps by region", expanded=True):
         try:
             _rf_panel = pd.read_csv(resolve_dir("outputs", code) / "panel_data.csv",
                                     parse_dates=['period_start'])
@@ -1402,7 +1402,7 @@ if mode == "📊 View Results":
             return f'<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#0d1117;border-radius:4px;border:1px solid #21262d;margin:3px 4px;">{img}<span style="font-size:.88rem;color:#c9d1d9;">{label}</span><span style="font-size:.88rem;font-weight:600;color:{clr};">{st_txt}</span></div>'
         r1 = "".join(_make_chip(*s) for s in _row1)
         r2 = "".join(_make_chip(*s) for s in _row2)
-        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:12px 24px;margin:0 2px;">
+        ds_html = f'''<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:14px 28px;margin:0 10px;">
             <div style="font-size:.78rem;font-weight:600;color:#8b949e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Data</div>
             <div style="display:flex;flex-wrap:wrap;justify-content:center;">{r1}</div>
             <div style="display:flex;flex-wrap:wrap;justify-content:center;margin-top:2px;">{r2}</div>
