@@ -1072,6 +1072,13 @@ if mode == "📊 View Results":
             _name_col = 'unit_name' if 'unit_name' in _rf_panel.columns else 'unit_id'
             _rf_ind = st.selectbox("Indicator", _rf_inds,
                                    format_func=lambda x: NAMES.get(x, x), key="rf_ind")
+            _seas = st.checkbox("Apply seasonal correction (month-of-year adjustment)",
+                                key="rf_seas",
+                                help="Subtracts each calendar month's pre-event average, so what "
+                                     "remains is deviation from the normal annual cycle. Generic "
+                                     "across shock types (earthquakes, conflicts, cyclones) because "
+                                     "it controls the full seasonal pattern, not just rainfall.")
+            _edt = pd.Timestamp(str(config.get("events", {}).get("disaster_date", "2100-01-01")))
             _modes = ["All units", "Pick manually"]
             if 'admin1_name' in _rf_panel.columns and _rf_panel['admin1_name'].notna().any():
                 _modes.insert(1, "By state/province (Admin 1)")
@@ -1084,11 +1091,23 @@ if mode == "📊 View Results":
                     _sel_units = set(_rf_panel[_rf_panel['admin1_name'].isin(_pick_a1)]
                                      ['unit_id'].astype(str))
             if _rf_mode == "Pick manually":
-                _opts = sorted(_rf_panel[_name_col].dropna().astype(str).unique())
-                _picked = st.multiselect("Units", _opts, key="rf_units")
+                # Municipality names repeat across states (several "Libertador", "Sucre",
+                # "Miranda" in Venezuela). Selecting by name alone grabbed every namesake.
+                # Labels are disambiguated by state and mapped to exact unit ids.
+                _cols = ["unit_id", _name_col] + (
+                    ["admin1_name"] if "admin1_name" in _rf_panel.columns else [])
+                _u = _rf_panel.drop_duplicates("unit_id")[_cols].copy()
+
+                def _lbl(r):
+                    nm = str(r[_name_col])
+                    a1 = str(r.get("admin1_name", "") or "")
+                    return f"{nm} - {a1}" if a1 and a1 != "nan" else f"{nm} ({str(r['unit_id'])[-5:]})"
+
+                _u["label"] = _u.apply(_lbl, axis=1)
+                _lut = dict(zip(_u["label"], _u["unit_id"].astype(str)))
+                _picked = st.multiselect("Units", sorted(_lut.keys()), key="rf_units2")
                 if _picked:
-                    _sel_units = set(_rf_panel[_rf_panel[_name_col].astype(str).isin(_picked)]
-                                     ['unit_id'].astype(str))
+                    _sel_units = {_lut[x] for x in _picked}
             _sub = _rf_panel if _sel_units is None else \
                 _rf_panel[_rf_panel['unit_id'].astype(str).isin(_sel_units)]
             if len(_sub) == 0:
@@ -1096,6 +1115,18 @@ if mode == "📊 View Results":
             else:
                 _ts = _sub.groupby('period_start')[_rf_ind].mean().reset_index()
                 _ts.columns = ['date', 'value']
+                if _seas:
+                    _pre_ts = _ts[_ts["date"] < _edt]
+                    if _pre_ts["date"].dt.month.nunique() >= 12:
+                        _mm = _pre_ts.groupby(_pre_ts["date"].dt.month)["value"].mean()
+                        _ov = _pre_ts["value"].mean()
+                        _ts["value"] = _ts["value"] - _ts["date"].dt.month.map(_mm) + _ov
+                        st.caption("Seasonally corrected: each point shows deviation from that "
+                                   "calendar month's pre-event norm (re-centred on the pre-event mean).")
+                    else:
+                        st.info("Seasonal correction needs at least 12 pre-event months covering the "
+                                "full annual cycle - showing raw values.")
+                        _seas = False
                 import altair as _alt
                 _line = _alt.Chart(_ts).mark_line(point=True).encode(
                     x=_alt.X('date:T', title=None),
@@ -1137,10 +1168,22 @@ if mode == "📊 View Results":
                     import geopandas as _g, json as _json, altair as _alt2
                     _gm = _g.read_file(_bp)
                     _idc = _b.get('id_column', 'shapeID')
-                    _e = pd.Timestamp(config.get('events', {}).get('disaster_date', ''))
-                    _pre_m = _sub[_sub['period_start'] < _e].groupby('unit_id')[_rf_ind].mean()
-                    _post_m = _sub[_sub['period_start'] >= _e].groupby('unit_id')[_rf_ind].mean()
-                    _chg = ((_post_m - _pre_m) / _pre_m.abs() * 100).round(1).rename('pct_change')
+                    _e = pd.Timestamp(config.get("events", {}).get("disaster_date", ""))
+                    if _seas:
+                        # Compare each post-event month against the SAME calendar month's
+                        # pre-event mean for that unit, then average the deviations.
+                        _pp = _sub.copy()
+                        _pp["calmonth"] = _pp["period_start"].dt.month
+                        _base = (_pp[_pp["period_start"] < _e]
+                                 .groupby(["unit_id", "calmonth"])[_rf_ind].mean().rename("base"))
+                        _post_rows = _pp[_pp["period_start"] >= _e].join(_base, on=["unit_id", "calmonth"])
+                        _post_rows = _post_rows[_post_rows["base"].abs() > 0]
+                        _chg = ((_post_rows[_rf_ind] - _post_rows["base"]) / _post_rows["base"].abs() * 100)
+                        _chg = _chg.groupby(_post_rows["unit_id"]).mean().round(1).rename("pct_change")
+                    else:
+                        _pre_m = _sub[_sub["period_start"] < _e].groupby("unit_id")[_rf_ind].mean()
+                        _post_m = _sub[_sub["period_start"] >= _e].groupby("unit_id")[_rf_ind].mean()
+                        _chg = ((_post_m - _pre_m) / _pre_m.abs() * 100).round(1).rename("pct_change")
                     _gm['pct_change'] = _gm[_idc].astype(str).map(_chg)
                     _gm = _gm[_gm['pct_change'].notna()]
                     if len(_gm):
@@ -1203,6 +1246,30 @@ if mode == "📊 View Results":
             </div>
         </div>"""
         st.markdown(disc_html, unsafe_allow_html=True)
+        st.markdown(
+            """**Baseline definition.** All "pre-event" values are the **average over the
+        full pre-event study window** (typically ~24 months). For seasonally-affected
+        indicators the scorecard benchmarks against the **same calendar month of prior
+        years** rather than the flat mean. Conventional alternatives - a 6-12 month
+        pre-event mean, or same-month-last-year only - trade recency against noise; the
+        full-window mean with seasonal benchmarking is standard for monthly satellite
+        panels.
+
+        **Seasonal correction (Geospatial panel).** The optional correction applies a
+        month-of-year adjustment: each observation minus its calendar month's pre-event
+        average, re-centred on the pre-event mean. Monthly norms are computed from
+        pre-event data only (never contaminated by the shock) and require at least a
+        full annual cycle of pre-event coverage. It is shock-agnostic - earthquakes,
+        conflicts, or cyclones - because it removes the entire recurring cycle rather
+        than modelling rainfall alone. The rainfall band on charts remains a visual
+        reference for how much raw variation tracks the wet/dry cycle.
+
+        **Interactive geospatial analysis.** Region filters (state/province or exact
+        municipalities), the trend chart and the map all recompute live from the panel
+        dataset. Map colours show each unit's post-event mean against its pre-event
+        baseline (seasonal or flat, per the toggle), capped at +/-30%. These views are
+        descriptive screening tools - causal statements still require the comparison
+        designs described above.""")
 
     # INDICATIVE ECONOMIC REACTIVATION
     if has_scorecard:
