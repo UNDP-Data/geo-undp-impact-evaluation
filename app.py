@@ -1246,30 +1246,34 @@ if mode == "📊 View Results":
             </div>
         </div>"""
         st.markdown(disc_html, unsafe_allow_html=True)
-        st.markdown(
-            """**Baseline definition.** All "pre-event" values are the **average over the
-        full pre-event study window** (typically ~24 months). For seasonally-affected
-        indicators the scorecard benchmarks against the **same calendar month of prior
-        years** rather than the flat mean. Conventional alternatives - a 6-12 month
-        pre-event mean, or same-month-last-year only - trade recency against noise; the
-        full-window mean with seasonal benchmarking is standard for monthly satellite
-        panels.
-
-        **Seasonal correction (Geospatial panel).** The optional correction applies a
-        month-of-year adjustment: each observation minus its calendar month's pre-event
-        average, re-centred on the pre-event mean. Monthly norms are computed from
-        pre-event data only (never contaminated by the shock) and require at least a
-        full annual cycle of pre-event coverage. It is shock-agnostic - earthquakes,
-        conflicts, or cyclones - because it removes the entire recurring cycle rather
-        than modelling rainfall alone. The rainfall band on charts remains a visual
-        reference for how much raw variation tracks the wet/dry cycle.
-
-        **Interactive geospatial analysis.** Region filters (state/province or exact
-        municipalities), the trend chart and the map all recompute live from the panel
-        dataset. Map colours show each unit's post-event mean against its pre-event
-        baseline (seasonal or flat, per the toggle), capped at +/-30%. These views are
-        descriptive screening tools - causal statements still require the comparison
-        designs described above.""")
+        _meth_md = [
+            '**Baseline definition.** All pre-event values are the **average over the full pre-event study window** (typically ~24 months of monthly observations, not the last 6). For seasonally-affected indicators the scorecard benchmarks against the **same calendar month of prior years** rather than the flat mean. Conventional alternatives - a 6-12 month pre-event mean, or same-month-last-year only - trade recency against noise; the full-window mean with seasonal benchmarking is the standard choice for monthly satellite panels.',
+            '',
+            '**Seasonal correction (Geospatial panel).** An optional month-of-year adjustment, driven by one tick-box that applies to **both the trend chart and the map**, so the two never disagree. Notation: `x(i,t)` is the indicator for unit *i* in month *t*, `E` the event date, and `m(t)` the calendar month of *t* (1-12).',
+            '',
+            '```',
+            'Flat baseline          base(i)   = mean{ x(i,t) : t < E }',
+            '',
+            'Monthly norm           norm(i,k) = mean{ x(i,t) : t < E and m(t) = k }',
+            '',
+            "Chart (corrected)      x'(t)     = x(t) - norm(m(t)) + base",
+            '                                   [+base re-centres the series so the',
+            '                                    vertical scale stays interpretable]',
+            '',
+            'Map, correction OFF    chg(i)    = 100 * ( mean{ x(i,t) : t >= E } - base(i) )',
+            '                                         / |base(i)|',
+            '',
+            'Map, correction ON     chg(i)    = mean over t >= E of',
+            '                                   100 * ( x(i,t) - norm(i,m(t)) ) / |norm(i,m(t))|',
+            '```',
+            '',
+            'Every norm uses **pre-event observations only**, so the shock never contaminates its own baseline. The map applies norms **per unit**, because a flood-prone lowland and a dry highland have different annual cycles and a single national correction would fix neither. The correction requires at least **12 pre-event months spanning a full annual cycle**; below that the dashboard reports raw values and says so. Unit-months with no pre-event observation for that calendar month are dropped rather than imputed. Map values are clipped to +/-30% for colour scaling only - the hover tooltip shows the uncapped figure.',
+            '',
+            "The adjustment is **shock-agnostic** (earthquakes, conflicts, cyclones, droughts) because it removes the entire recurring annual cycle rather than modelling rainfall alone. One caveat: for cyclones and floods, which arrive *with* the wet season, part of the shock's own signature can look seasonal - read those cases alongside the raw series. The rainfall band on charts remains a visual reference for how much raw variation tracks the wet/dry cycle.",
+            '',
+            '**Interactive geospatial analysis.** Region filters (state/province, or exact municipalities disambiguated by state), the trend chart and the map all recompute live from the panel dataset. These views are descriptive screening tools - causal statements still require the comparison designs described above.',
+        ]
+        st.markdown("\n".join(_meth_md))
 
     # INDICATIVE ECONOMIC REACTIVATION
     if has_scorecard:
