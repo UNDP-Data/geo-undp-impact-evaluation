@@ -1799,9 +1799,10 @@ elif mode == "⚙️ Setup & Run":
                 else:
                     # surface the real reason, not just a generic label
                     tail = chr(10).join(log[-15:])
-                    if "Pipeline finished" in out or "✓ COMPLETE" in out:
+                    full_log = "\n".join(log)
+                    if "Pipeline finished" in full_log or "✓ COMPLETE" in full_log:
                         import re as _re
-                        _m = _re.search(r"Issues:\s*(\d+)", out)
+                        _m = _re.search(r"Issues:\s*(\d+)", full_log)
                         _n = _m.group(1) if _m else "some"
                         st.warning(f"{desc} completed. {_n} non-critical stage issue(s) — "
                                    "results were produced; see the log above for details.")
