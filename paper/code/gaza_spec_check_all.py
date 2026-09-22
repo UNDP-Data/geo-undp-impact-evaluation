@@ -27,7 +27,9 @@ import numpy as np, pandas as pd
 import statsmodels.api as sm
 warnings.filterwarnings("ignore")
 
-P = "outputs/pse/estimation_panel_500_1500_all.csv"
+import argparse as _ap
+_a = _ap.ArgumentParser(); _a.add_argument("--panel", default="outputs/pse/estimation_panel_500_1500_all.csv")
+P = _a.parse_args().panel
 CONFLICT_START = pd.Timestamp("2023-10-01")
 try:
     D = pd.read_csv(P, parse_dates=["period_start", "treat_date"])
