@@ -1758,6 +1758,7 @@ elif mode == "⚙️ Setup & Run":
 
     def run_cmd(cmd, desc):
         import time as _t
+        print(cmd)
         # --- single-job queue: only one pipeline runs at a time across all users ---
         if _lock_active():
             try:
