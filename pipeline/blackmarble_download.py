@@ -42,7 +42,7 @@ def init_gee():
     _gee_project = os.environ.get("GEE_PROJECT", "") or None
     _sa_json = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "")
     if not _sa_json:
-        for _cand in ["/opt/undp-dashboard/gee_service_account.json", "gee_service_account.json",
+        for _cand in ["gee_service_account.json",
                       os.path.join(os.path.expanduser("~"), ".undp_dashboard",
                                    "gee_service_account.json"),
                       "/opt/undp-dashboard/gee_service_account.json"]:
