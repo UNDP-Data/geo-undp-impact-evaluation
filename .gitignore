@@ -45,4 +45,3 @@ gee_service_account.json
 *.shx
 *.dbf
 *.Rhistory
-outputs/pse/estimation_panel_*.csv
