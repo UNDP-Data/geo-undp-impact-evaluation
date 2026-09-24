@@ -10,24 +10,19 @@ services:
     env_file:
       - .env
     environment:
-      # Absolute path ensures pipeline finds the key regardless of cwd
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gee_service_account.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/undp-dashboard/gee_service_account.json
     volumes:
-      # 1. Credentials
-      - ./gee_service_account.json:/app/gee_service_account.json:ro
+      # app paths
+      - ./gee_service_account.json:/opt/undp-dashboard/gee_service_account.json:ro
+      - ./pipeline:/opt/undp-dashboard/pipeline
+      - ./run_pipeline.py:/opt/undp-dashboard/run_pipeline.py
+      - ./app.py:/opt/undp-dashboard/app.py
+      - ./config:/opt/undp-dashboard/config
+      - ./data:/opt/undp-dashboard/data
+      - ./outputs:/opt/undp-dashboard/outputs
 
-      # 2. Live Code & Configs (so your local edits sync instantly)
-      - ./pipeline:/app/pipeline
-      - ./run_pipeline.py:/app/run_pipeline.py
-      - ./app.py:/app/app.py
-      - ./config:/app/config
 
-      # 3. Data & Outputs
-      - ./data:/app/data
-      - ./outputs:/app/outputs
-
-      # 4. Persistent User Workspaces (Docker named volume)
-      - undp_workspaces:/root/.undp_dashboard
+      - undp_workspaces:/home/undp/.undp_dashboard
 
 volumes:
   undp_workspaces:
