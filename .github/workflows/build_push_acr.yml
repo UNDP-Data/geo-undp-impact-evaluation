@@ -6,8 +6,7 @@ on:
     #tags: ['v*']
   pull_request:
     branches: [ "main" ] # Only run when PR targets main
-env:
-  IMAGE_NAME: ${{ github.repository | lower }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
