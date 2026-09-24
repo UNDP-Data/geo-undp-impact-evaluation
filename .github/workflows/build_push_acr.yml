@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: [ "main" ] # Only run when PR targets main
 env:
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository | lower }}
 jobs:
   build:
     runs-on: ubuntu-latest
