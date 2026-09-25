@@ -1,0 +1,23 @@
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 8501
+      allowInsecure: false
+    secrets:
+      - name: gee-json-raw
+        value: '<PASTE_YOUR_SINGLE_LINE_JSON_HERE>'
+  template:
+    containers:
+      - name: undp-dashboard
+        image: undpgeohub.azurecr.io/undp-dashboard:latest
+        resources:
+          cpu: 4.0
+          memory: 8Gi
+        env:
+          - name: GEE_SERVICE_ACCOUNT_JSON
+            secretRef: gee-json-raw
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
