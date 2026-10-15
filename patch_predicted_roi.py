@@ -177,8 +177,8 @@ s = s[:a] + new_block + s[b:]
 # ── 3. language elsewhere ──
 rep('"🔒 This is a protected country with verified results.',
     '"🔒 This is a protected country with published results.')
-rep('"contains verified causal impact-evaluation results and is "',
-    '"contains published impact-evaluation results and is "')
+rep('contains verified causal impact-evaluation results and is ',
+    'contains published impact-evaluation results and is ')
 rep('''        + "8. Use plain language a policy maker would understand. Avoid academic hedging."''',
 '''        + "8. Use plain language a policy maker would understand. Avoid academic hedging." + chr(10)
         + "9. Economic reactivation and ROI figures are PREDICTIONS: observed recovery since a project started, "

@@ -8,10 +8,10 @@ SERVER=${SERVER:-root@62.238.42.192}
 TMP=/tmp/undp_ws; rm -rf "$TMP"; mkdir -p "$TMP"
 
 echo "== 1. pulling workspaces from $SERVER =="
-rsync -az --exclude '*.tif' --exclude '.env' --exclude '*.json.bak' \
+rsync -azv --exclude '*.tif' --exclude '.env' --exclude '*.json.bak' \
       "$SERVER:/home/undp/.undp_dashboard/workspaces/" "$TMP/"
-rsync -az --exclude '*.tif' "$SERVER:/opt/undp-dashboard/outputs/" "$TMP/_server_shared_outputs/"
-rsync -az --exclude '*.tif' --exclude '*.env' "$SERVER:/opt/undp-dashboard/data/" "$TMP/_server_shared_data/"
+rsync -azv --exclude '*.tif' "$SERVER:/opt/undp-dashboard/outputs/" "$TMP/_server_shared_outputs/"
+rsync -azv --exclude '*.tif' --exclude '*.env' "$SERVER:/opt/undp-dashboard/data/" "$TMP/_server_shared_data/"
 
 echo "== 2. merging into the shared tree (never overwrites an existing shared country) =="
 merge_country () {   # $1 = config yaml, $2 = data root, $3 = outputs root
