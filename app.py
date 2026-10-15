@@ -1378,18 +1378,6 @@ if mode == "📊 View Results":
                 _prog_react = _react * _bshare
                 _roi = _prog_react / _sel_b if _sel_b > 0 else 0
 
-                # Per-project recovery since each project's OWN start date (scorecard rule).
-                _per = {}
-                try:
-                    _pp = pd.read_csv(resolve_dir("outputs", code) / "panel_data.csv",
-                                      usecols=["unit_id", "period_start", "nightlights"],
-                                      parse_dates=["period_start"])
-                    for _sd in _post["start_date"].dropna().unique():
-                        _r = recovery_since_start(_pp, _evt, pd.Timestamp(_sd))
-                        if _r: _per[str(pd.Timestamp(_sd).date())] = _r
-                except Exception:
-                    _per = {}
-
                 with st.expander("Predicted Economic Reactivation (illustrative)", expanded=True):
                     st.markdown(PREDICTED_NOTE, unsafe_allow_html=True)
                     if not _has_nl:
@@ -1456,39 +1444,25 @@ if mode == "📊 View Results":
                     else:
                         st.info("Nightlights show no measurable recovery yet. Predictions appear once recovery is detected.")
 
-                    # Per-project table: each project measured since its OWN start date.
-                    if "total_budget" in _post.columns and len(_post.dropna(subset=["total_budget"])) > 0:
-                        st.markdown('<div style="font-size:.85rem;font-weight:600;color:#e6edf3;margin:.6rem 0 .2rem 0;">'
-                                    'By project (recovery measured since each project started)</div>',
-                                    unsafe_allow_html=True)
-                        _rows = []
-                        for _, _pr in _post.dropna(subset=["total_budget"]).iterrows():
-                            _b = float(_pr["total_budget"])
-                            if pd.isna(_b) or _b <= 0: continue
-                            _t = str(_pr.get("title", ""))[:55]
-                            _d = _pr["start_date"].strftime("%Y-%m-%d") if pd.notna(_pr["start_date"]) else "-"
-                            _bs = _b / _tot_b if _tot_b > 0 else 0
-                            _is_sel = (_d == str(_intv.date()))
-                            if _is_sel and _nl_un > 0:
-                                _rj = _nl_un                                   # scorecard figure, same as the cards
-                            else:
-                                _rj = float(_per.get(_d, {}).get("since", 0.0))
-                            _pr_r = _aff_gdp * (_rj * _EL / 100.0) * _bs if _has_nl else 0.0
-                            _pr_roi = _pr_r / _b if (_b > 0 and _pr_r > 0) else 0.0
-                            _rows.append({"Project": ("▶ " if _is_sel else "") + _t, "Start": _d, "Budget": _b,
-                                          "NL recovery since start": _rj, "Share of UNDP budget": _bs,
-                                          "Predicted reactivation": _pr_r, "Predicted ROI": _pr_roi})
-                        if _rows:
-                            _tdf = pd.DataFrame(_rows)
-                            _tdf["Budget"] = _tdf["Budget"].apply(lambda x: "${:,.0f}".format(x))
-                            _tdf["NL recovery since start"] = _tdf["NL recovery since start"].apply(lambda x: "{:.0f}%".format(x) if x > 0 else "none yet")
-                            _tdf["Share of UNDP budget"] = _tdf["Share of UNDP budget"].apply(lambda x: "{:.0%}".format(x))
-                            _tdf["Predicted reactivation"] = _tdf["Predicted reactivation"].apply(lambda x: "${:,.0f}".format(x) if x > 0 else chr(8212))
-                            _tdf["Predicted ROI"] = _tdf["Predicted ROI"].apply(lambda x: "{:,.1f}:1".format(x) if x > 0 else chr(8212))
-                            st.dataframe(_tdf, hide_index=True, width="stretch")
-                            st.caption("▶ marks the project selected above. Recovery since start is computed per project "
-                                       "from the panel with the scorecard rule (affected units only, capped at 100%); "
-                                       "the selected project shows the scorecard's own figure.")
+                    # One row: the selected programme only. Other programmes are not listed,
+                    # because the proportional-share model gives identical figures to any
+                    # programmes sharing a start date, which reads as an error.
+                    if _has_nl and _sel_b > 0:
+                        _sel_rows = _post[_post["start_date"] == _intv] if "start_date" in _post.columns else _post.iloc[0:0]
+                        _sel_title = ("; ".join(_sel_rows["title"].astype(str).str[:60])
+                                      if "title" in _post.columns and len(_sel_rows) else "Selected programme")
+                        _row = pd.DataFrame([{
+                            "Programme": _sel_title,
+                            "Start": str(_intv.date()),
+                            "Budget": "${:,.0f}".format(_sel_b),
+                            "NL recovery since start": "{:.0f}%".format(_rec),
+                            "Share of post-event UNDP budget": "{:.0%}".format(_bshare),
+                            "Predicted reactivation": "${:,.0f}".format(_prog_react),
+                            "Predicted ROI": "{:,.1f}:1".format(_roi),
+                        }])
+                        st.dataframe(_row, hide_index=True, width="stretch")
+                        st.caption("Shown for the selected programme only. Choose another programme above to see "
+                                   "its prediction; recovery is measured from each programme's own start date.")
 
             except Exception:
                 pass
