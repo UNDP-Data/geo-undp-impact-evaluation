@@ -1,0 +1,13 @@
+indicator,year,value
+gdp_current_usd,2020,79006113670.2831
+gdp_current_usd,2021,66345291149.4433
+gdp_current_usd,2022,62253049903.28
+gdp_current_usd,2023,66757619000.0
+gdp_per_capita_usd,2020,1490.21683599469
+gdp_per_capita_usd,2021,1242.7213439951
+gdp_per_capita_usd,2022,1158.05005055976
+gdp_per_capita_usd,2023,1233.19666209269
+population,2020,53016522.0
+population,2021,53387102.0
+population,2022,53756787.0
+population,2023,54133798.0

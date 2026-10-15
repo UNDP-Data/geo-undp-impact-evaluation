@@ -3,7 +3,7 @@
   "raster_file": "mmr_ppp_2020_UNadj_constrained.tif",
   "raster_vintage": "2020 (pre-shock resident population, deliberate)",
   "citation": "WorldPop (www.worldpop.org - School of Geography and Environmental Science, University of Southampton). 2020. Individual countries 2020 UN adjusted (100m) - Myanmar. CC BY 4.0. UN adjustment: WPP 2019 (UNPD).",
-  "access_date": "2026-07-13",
+  "access_date": "2026-09-21",
   "valuation_params": {
     "did_pct_range_exact": [
       31.9,
