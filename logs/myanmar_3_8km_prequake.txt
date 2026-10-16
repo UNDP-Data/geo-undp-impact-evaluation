@@ -1,0 +1,33 @@
+
+--- B (early print) ---
+   OLS log(y+1)  [current paper]       0.173   0.086   0.045      18.9% [   0.4,   40.8]
+   PPML raw y    [Chen-Roth fix]       0.177   0.041   0.000      19.4% [  10.3,   29.3]
+   OLS y/pre-mean [levels share]       0.238   0.081   0.003      23.8% [   8.0,   39.6]
+
+========================================================================
+KEY RESULTS  |  label=myanmar_3_8km_prequake  |  panel=outputs/mmr/panel_data.csv
+========================================================================
+Assignment: centroid distance to nearest site: treated <= 3.0 km, control (3.0, 8.0] km
+Units: 14 treated, 18 control | months: 31 (2023-10-01 to 2026-04-01) | event: 2025-09-01
+
+A. Near-zero radiance: 28.3% of obs < 0.5 nW (17.7% among treated); exact zeros 5.4%
+   -> below ~5%: the +1 shift is cosmetic; above ~20%: it materially biases percentages
+
+B. Treated x post, unit + month FE, SE clustered by unit
+   estimator                            beta      se       p  implied %             95% CI
+   OLS log(y+1)  [current paper]       0.173   0.086   0.045      18.9% [   0.4,   40.8]
+   PPML raw y    [Chen-Roth fix]       0.177   0.041   0.000      19.4% [  10.3,   29.3]
+   OLS y/pre-mean [levels share]       0.238   0.081   0.003      23.8% [   8.0,   39.6]
+   -> if PPML implied % is within ~1/3 of the log(y+1) figure and same sign, the story holds
+
+C. Pre-trends and trend-extrapolation check (event study, reference month -7; joint pre-test on months <= -7)
+   OLS log(y+1)   pre-slope/month=-0.0038  joint pre p=0.001  post avg beta=+0.273  net of extrapolated trend=+0.239
+   PPML           pre-slope/month=-0.0036  joint pre p=0.000  post avg beta=+0.398  net of extrapolated trend=+0.327
+   Shock phase (months -6 to -1, between pre-window and programming):
+   m-6=-0.12  m-5=-0.11  m-4=+0.13  m-3=+1.34  m-2=-0.33  m-1=+0.96
+   -> strongly negative here = treated units were hit harder (targeting), not a pre-trend violation
+   -> joint pre p > 0.10 and 'net of trend' still positive: effect survives the pre-trend concern
+   -> joint pre p < 0.05 and 'net of trend' near zero or negative: identification problem is real
+
+Files: part3_myanmar_3_8km_prequake_results.csv, part3_myanmar_3_8km_prequake_eventstudy.csv
+========================================================================

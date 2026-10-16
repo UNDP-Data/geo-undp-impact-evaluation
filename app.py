@@ -1783,7 +1783,6 @@ elif mode == "⚙️ Setup & Run":
 
     def run_cmd(cmd, desc):
         import time as _t
-        print(cmd)
         # --- single-job queue: only one pipeline runs at a time across all users ---
         if _lock_active():
             try:
@@ -1825,10 +1824,10 @@ elif mode == "⚙️ Setup & Run":
                 else:
                     # surface the real reason, not just a generic label
                     tail = chr(10).join(log[-15:])
-                    full_log = "\n".join(log)
-                    if "Pipeline finished" in full_log or "✓ COMPLETE" in full_log:
+                    out = chr(10).join(log)
+                    if "Pipeline finished" in out or "✓ COMPLETE" in out:
                         import re as _re
-                        _m = _re.search(r"Issues:\s*(\d+)", full_log)
+                        _m = _re.search(r"Issues:\s*(\d+)", out)
                         _n = _m.group(1) if _m else "some"
                         st.warning(f"{desc} completed. {_n} non-critical stage issue(s) — "
                                    "results were produced; see the log above for details.")
