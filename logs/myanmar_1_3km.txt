@@ -1,0 +1,30 @@
+
+--- B (early print) ---
+   OLS log(y+1)  [current paper]       0.154   0.135   0.254      16.7% [ -10.5,   52.0]
+   PPML raw y    [Chen-Roth fix]       0.000   0.042   0.993       0.0% [  -7.9,    8.7]
+   OLS y/pre-mean [levels share]       0.132   0.129   0.305      13.2% [ -12.0,   38.4]
+
+========================================================================
+KEY RESULTS  |  label=myanmar_1_3km  |  panel=outputs/mmr/panel_data.csv
+========================================================================
+Assignment: centroid distance to nearest site: treated <= 1.0 km, control (1.0, 3.0] km
+Units: 5 treated, 9 control | months: 31 (2023-10-01 to 2026-04-01) | event: 2025-09-01
+
+A. Near-zero radiance: 17.7% of obs < 0.5 nW (5.2% among treated); exact zeros 5.3%
+   -> below ~5%: the +1 shift is cosmetic; above ~20%: it materially biases percentages
+
+B. Treated x post, unit + month FE, SE clustered by unit
+   estimator                            beta      se       p  implied %             95% CI
+   OLS log(y+1)  [current paper]       0.154   0.135   0.254      16.7% [ -10.5,   52.0]
+   PPML raw y    [Chen-Roth fix]       0.000   0.042   0.993       0.0% [  -7.9,    8.7]
+   OLS y/pre-mean [levels share]       0.132   0.129   0.305      13.2% [ -12.0,   38.4]
+   -> if PPML implied % is within ~1/3 of the log(y+1) figure and same sign, the story holds
+
+C. Pre-trends and trend-extrapolation check (event study, reference month -1; joint pre-test on months <= -1)
+   OLS log(y+1)   pre-slope/month=-0.0111  joint pre p=0.000  post avg beta=-0.324  net of extrapolated trend=+0.354
+   PPML           pre-slope/month=+0.0050  joint pre p=0.000  post avg beta=-0.396  net of extrapolated trend=+0.064
+   -> joint pre p > 0.10 and 'net of trend' still positive: effect survives the pre-trend concern
+   -> joint pre p < 0.05 and 'net of trend' near zero or negative: identification problem is real
+
+Files: part3_myanmar_1_3km_results.csv, part3_myanmar_1_3km_eventstudy.csv
+========================================================================
