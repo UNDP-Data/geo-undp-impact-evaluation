@@ -1,0 +1,6 @@
+indicator,name,short_name,icon,description,higher_is_better,baseline,trough,current,undp_arrival,disaster_drop_pct,overall_recovery_pct,undp_recovery_pct,n_affected_units,n_total_units,trend,last_data
+nightlights,Nighttime Lights (VIIRS),Nightlights,💡,Economic activity & energy access,True,0,0,0,0,0,-2.0,-2.0,0,1122,no_post_data,Apr 2026
+ndvi,Vegetation (NDVI),Vegetation,🌿,Agricultural & ecosystem health,True,0,0,0,0,0,-2.0,-2.0,0,1122,no_post_data,Jul 2026
+vh,SAR VH Backscatter,Radar VH,📡,Infrastructure & building presence,True,0,0,0,0,0,-2.0,-2.0,0,1122,no_post_data,Aug 2026
+vv,SAR VV Backscatter,Radar VV,📡,Surface roughness & structures,True,0,0,0,0,0,-2.0,-2.0,0,1122,no_post_data,Aug 2026
+bm_nightlights,"Nighttime Lights (Daily, Black Marble)",Lights (daily),🌙,"Near-real-time daily NTL (VNP46A2, ~1 week lag); experimental",True,0,0,0,0,0,-2.0,-2.0,0,1122,no_post_data,Aug 2026

@@ -585,6 +585,49 @@ def load_wb_data(code, event_year):
     return result
 
 
+def recovery_since_start(panel, event_dt, start_dt, threshold=0.10):
+    """Nightlight recovery since a given project start, following the scorecard
+    rule: units with a >10% decline from the pre-event mean to the post-event
+    trough are 'affected'; recovery since start is the share of that decline
+    regained between the first month at/after the start date and the latest
+    observation, averaged over affected units and capped at 0-100. Returns
+    dict(since, overall, n_aff, n_tot) or None when no post-event data."""
+    p = panel.dropna(subset=["nightlights"])
+    pre = p[p["period_start"] < event_dt].groupby("unit_id")["nightlights"].mean()
+    post = p[p["period_start"] >= event_dt].sort_values("period_start")
+    if post.empty or pre.empty:
+        return None
+    trough = post.groupby("unit_id")["nightlights"].min()
+    latest = post.groupby("unit_id")["nightlights"].last()
+    at_start = post[post["period_start"] >= start_dt].groupby("unit_id")["nightlights"].first()
+    df = pd.concat([pre.rename("pre"), trough.rename("trough"), latest.rename("latest"),
+                    at_start.rename("at_start")], axis=1).dropna(subset=["pre", "trough", "latest"])
+    df = df[df["pre"] > 0]
+    df["decline"] = (df["pre"] - df["trough"]) / df["pre"]
+    aff = df[df["decline"] > threshold]
+    out = {"since": 0.0, "overall": 0.0, "n_aff": int(len(aff)), "n_tot": int(len(df))}
+    if len(aff) == 0:
+        return out
+    span = aff["pre"] - aff["trough"]
+    out["overall"] = float(((aff["latest"] - aff["trough"]) / span).clip(0, 1).mean() * 100)
+    if aff["at_start"].notna().any():
+        out["since"] = float(((aff["latest"] - aff["at_start"]) / span).clip(0, 1).mean() * 100)
+    out["since"] = min(out["since"], out["overall"])
+    return out
+
+
+PREDICTED_NOTE = (
+    '<div style="background:#1f2a1f;border:1px solid #2ea043;border-radius:6px;padding:.7rem 1rem;'
+    'margin:.2rem 0 .8rem 0;font-size:.8rem;color:#c9d1d9;line-height:1.6;">'
+    '<b>Predicted, not measured.</b> The figures below project the nightlight recovery observed in '
+    'affected areas since each UNDP project began onto a standard nightlight-GDP elasticity and the '
+    'pre-shock GDP of those areas. They assume that the recovery observed after a project started is '
+    'attributable to it in proportion to its share of UNDP spending, an assumption this dashboard does '
+    'not test: recovery reflects every actor on the ground, and the scorecard above is correlational. '
+    'Read these as planning-grade orders of magnitude, not as evaluated returns.</div>'
+)
+
+
 def render_copilot_sidebar(config, figures_dir, code):
     """AI co-pilot in sidebar."""
     ctx = []
@@ -676,7 +719,9 @@ def render_copilot_sidebar(config, figures_dir, code):
         + "5. Be concise and actionable. Recommend specific next steps when appropriate." + chr(10)
         + "6. Give complete, thorough answers. Never cut off mid-sentence." + chr(10)
         + "7. You cannot see images, but you HAVE the full monthly time series data. When asked about trends, maps, or charts, analyze the time series numbers directly. Identify breakpoints, trends, and anomalies." + chr(10)
-        + "8. Use plain language a policy maker would understand. Avoid academic hedging."
+        + "8. Use plain language a policy maker would understand. Avoid academic hedging." + chr(10)
+        + "9. Economic reactivation and ROI figures are PREDICTIONS: observed recovery since a project started, "
+          "projected with a fixed elasticity and a proportional-share assumption. Always call them predicted, never measured."
     )
 
     if "copilot_msgs" not in st.session_state:
@@ -1044,7 +1089,7 @@ if mode == "📊 View Results":
                     _nint = _opts[_pick]['date']
                     if _nint != _cur:
                         if code in LOCKED_COUNTRIES:
-                            st.warning("🔒 This is a protected country with verified results. Use Setup & Run "
+                            st.warning("🔒 This is a protected country with published results. Use Setup & Run "
                                        "to create your own version under a new name if you'd like to explore this.")
                         else:
                             config['events']['intervention_start'] = _nint
@@ -1333,11 +1378,12 @@ if mode == "📊 View Results":
                 _prog_react = _react * _bshare
                 _roi = _prog_react / _sel_b if _sel_b > 0 else 0
 
-                with st.expander("Indicative Economic Reactivation", expanded=True):
+                with st.expander("Predicted Economic Reactivation (illustrative)", expanded=True):
+                    st.markdown(PREDICTED_NOTE, unsafe_allow_html=True)
                     if not _has_nl:
-                        st.info('Economic reactivation estimates require nightlight recovery data.')
+                        st.info('Predictions require nightlight recovery data.')
                     elif _sel_b <= 0:
-                        st.info('Economic reactivation estimates require a UNDP project with budget data. Select a project above.')
+                        st.info('Predictions require a UNDP project with budget data. Select a project above.')
                     if _has_nl and _sel_b > 0:
                         def _fmt_big(v):
                             if v >= 1e9: return "${:.1f}B".format(v/1e9)
@@ -1346,10 +1392,10 @@ if mode == "📊 View Results":
                             return "${:,.0f}".format(v)
                         _cards = [
                             ("Pre-shock GDP", _fmt_big(_nat_gdp), str(_wb_year)),
-                            ("Project Budget", _fmt_big(_sel_b), ""),
-                            ("NL Recovery", "{:.0f}%".format(_rec), _rlbl),
-                            ("Est. Reactivation", _fmt_big(_prog_react), ""),
-                            ("Indicative ROI", "{:,.1f}:1".format(_roi), ""),
+                            ("Project budget", _fmt_big(_sel_b), ""),
+                            ("NL recovery", "{:.0f}%".format(_rec), _rlbl),
+                            ("Predicted reactivation", _fmt_big(_prog_react), "selected project"),
+                            ("Predicted ROI", "{:,.1f}:1".format(_roi), "illustrative"),
                         ]
                         _cards_html = '<div style="display:flex;justify-content:center;gap:1.5rem;margin:.8rem 0;">'
                         for _lbl, _val, _sub in _cards:
@@ -1365,79 +1411,58 @@ if mode == "📊 View Results":
                         _cards_html += '</div>'
                         st.markdown(_cards_html, unsafe_allow_html=True)
 
-                        # Explanation as clean HTML to avoid markdown/LaTeX issues
                         _expl = (
                             '<div style="font-size:.85rem;color:#c9d1d9;line-height:1.7;margin:.8rem 0;">'
-                            '<p style="margin:0 0 .6rem 0;">'
-                            '<b>Step 1 - Nightlight recovery:</b> '
+                            '<p style="margin:0 0 .6rem 0;"><b>Step 1 - Observed nightlight recovery:</b> '
                             + '{} nightlight recovery of <b>{:.0f}%</b>'.format(_rlbl.capitalize(), _rec)
-                            + ' was observed across <b>{:,}</b> affected administrative units.'.format(_n_aff)
-                            + '</p>'
-                            '<p style="margin:0 0 .6rem 0;">'
-                            '<b>Step 2 - Pre-shock GDP:</b> '
-                            + 'The national GDP before the shock was '
-                            + '<b>${:,.0f}</b> ({}, {}).'.format(_nat_gdp, _wb_src, _wb_year)
-                            + ' The affected area ({:,.0f} of {:,.0f} admin units, '.format(_n_aff, _n_tot)
-                            + '<b>{:.0%}</b> of the country) '.format(_cov)
-                            + 'has an estimated GDP of <b>${:,.0f}</b>.'.format(_aff_gdp)
-                            + '</p>'
-                            '<p style="margin:0 0 .6rem 0;">'
-                            '<b>Step 3 - GDP reactivation:</b> '
-                            + 'Applying the Henderson et al. (2012) elasticity of 0.3, '
-                            + '{:.0f}% nightlight recovery implies '.format(_rec)
-                            + '<b>{:.1f}% GDP reactivation</b>, '.format(_gdp_eff)
-                            + 'equivalent to approximately <b>${:,.0f}</b> '.format(_react)
-                            + 'in economic activity across all actors on the ground.'
-                            + '</p>'
-                            '<p style="margin:0 0 .6rem 0;">'
-                            '<b>Step 4 - Programme attribution:</b> '
-                            + 'This project represents '
-                            + '<b>{:.1%}</b> of total post-event UNDP spending '.format(_bshare)
+                            + ' was observed across <b>{:,}</b> affected administrative units.</p>'.format(_n_aff)
+                            + '<p style="margin:0 0 .6rem 0;"><b>Step 2 - Pre-shock GDP:</b> '
+                            + 'National GDP before the shock was <b>${:,.0f}</b> ({}, {}). '.format(_nat_gdp, _wb_src, _wb_year)
+                            + 'The affected area ({:,.0f} of {:,.0f} admin units, <b>{:.0%}</b> of the country) '.format(_n_aff, _n_tot, _cov)
+                            + 'is assigned a proportional GDP of <b>${:,.0f}</b>.</p>'.format(_aff_gdp)
+                            + '<p style="margin:0 0 .6rem 0;"><b>Step 3 - Predicted reactivation:</b> '
+                            + 'Applying the Henderson et al. (2012) elasticity of 0.3, {:.0f}% nightlight recovery '.format(_rec)
+                            + 'predicts <b>{:.1f}% GDP reactivation</b>, about <b>${:,.0f}</b> '.format(_gdp_eff, _react)
+                            + 'in economic activity across all actors on the ground.</p>'
+                            + '<p style="margin:0 0 .6rem 0;"><b>Step 4 - Share attributed to this project:</b> '
+                            + 'This project represents <b>{:.1%}</b> of post-event UNDP spending '.format(_bshare)
                             + '(${:,.0f} of ${:,.0f}). '.format(_sel_b, _tot_b)
-                            + 'Attributing a proportional share yields '
-                            + '<b>${:,.0f}</b> '.format(_prog_react)
-                            + 'with a benefit-cost ratio of <b>{:,.1f}:1</b>.'.format(_roi)
-                            + '</p>'
-                            '</div>'
+                            + 'Attributing that share yields a predicted <b>${:,.0f}</b>, '.format(_prog_react)
+                            + 'a predicted return of <b>{:,.1f}:1</b> on the project budget.</p></div>'.format(_roi)
                         )
                         st.markdown(_expl, unsafe_allow_html=True)
-
                         st.caption(
-                            "Correlational estimate for rapid screening, not causal impact. "
-                            "Recovery reflects all actors on the ground, not just UNDP. "
-                            "Project share assumes proportional contribution (a simplification). "
-                            "GDP data: " + _wb_src + " (" + str(_wb_year) + "). "
-                            "Affected area GDP estimated as proportional share of national GDP "
-                            "based on fraction of admin units affected. "
-                            "Henderson et al. (2012) elasticity of 0.3 is a global average that may vary locally."
+                            "Prediction for rapid screening, not an evaluated return. Recovery since a project's "
+                            "start reflects all actors on the ground, not just UNDP; the proportional share is an "
+                            "assumption. GDP data: " + _wb_src + " (" + str(_wb_year) + "). Affected-area GDP is a "
+                            "proportional share of national GDP by number of affected admin units. The elasticity "
+                            "of 0.3 is a global average that may differ locally."
                         )
                     elif _has_nl:
-                        st.metric("NL Recovery", "{:.0f}%".format(_rec))
-                        st.markdown("Recovery detected but no project budget available for ROI.")
+                        st.metric("NL recovery", "{:.0f}%".format(_rec))
+                        st.markdown("Recovery detected but no project budget available for a prediction.")
                     else:
-                        st.info("Nightlights show no measurable recovery yet. Estimates appear when recovery is detected.")
-                    if "total_budget" in _post.columns and len(_post.dropna(subset=["total_budget"])) > 0:
-                        _rows = []
-                        for _, _pr in _post.dropna(subset=["total_budget"]).iterrows():
-                            _b = float(_pr["total_budget"])
-                            if pd.isna(_b) or _b <= 0: continue
-                            _t = str(_pr.get("title", ""))[:55]
-                            _d = _pr["start_date"].strftime("%Y-%m-%d") if pd.notna(_pr["start_date"]) else "-"
-                            _bs = _b / _tot_b if _tot_b > 0 else 0
-                            if _has_nl:
-                                _pr_r = _react * _bs
-                                _pr_roi = _pr_r / _b if _b > 0 else 0
-                                _rows.append({"Programme": _t, "Start": _d, "Budget": _b, "Share": "{:.0%}".format(_bs),
-                                              "Est. Reactivation": _pr_r, "ROI": _pr_roi})
-                            else:
-                                _rows.append({"Programme": _t, "Start": _d, "Budget": _b, "Share": "{:.0%}".format(_bs),
-                                              "Est. Reactivation": 0, "ROI": 0})
-                        if _rows:
-                            _tdf = pd.DataFrame(_rows)
-                            _tdf["Budget"] = _tdf["Budget"].apply(lambda x: "${:,.0f}".format(x))
-                            _tdf["Est. Reactivation"] = _tdf["Est. Reactivation"].apply(lambda x: "${:,.0f}".format(x) if x > 0 else chr(8212))
-                            _tdf["ROI"] = _tdf["ROI"].apply(lambda x: "{:,.1f}:1".format(x) if x > 0 else chr(8212))
-                            st.dataframe(_tdf, hide_index=True, width="stretch")
+                        st.info("Nightlights show no measurable recovery yet. Predictions appear once recovery is detected.")
+
+                    # One row: the selected programme only. Other programmes are not listed,
+                    # because the proportional-share model gives identical figures to any
+                    # programmes sharing a start date, which reads as an error.
+                    if _has_nl and _sel_b > 0:
+                        _sel_rows = _post[_post["start_date"] == _intv] if "start_date" in _post.columns else _post.iloc[0:0]
+                        _sel_title = ("; ".join(_sel_rows["title"].astype(str).str[:60])
+                                      if "title" in _post.columns and len(_sel_rows) else "Selected programme")
+                        _row = pd.DataFrame([{
+                            "Programme": _sel_title,
+                            "Start": str(_intv.date()),
+                            "Budget": "${:,.0f}".format(_sel_b),
+                            "NL recovery since start": "{:.0f}%".format(_rec),
+                            "Share of post-event UNDP budget": "{:.0%}".format(_bshare),
+                            "Predicted reactivation": "${:,.0f}".format(_prog_react),
+                            "Predicted ROI": "{:,.1f}:1".format(_roi),
+                        }])
+                        st.dataframe(_row, hide_index=True, width="stretch")
+                        st.caption("Shown for the selected programme only. Choose another programme above to see "
+                                   "its prediction; recovery is measured from each programme's own start date.")
 
             except Exception:
                 pass
@@ -1625,7 +1650,7 @@ elif mode == "⚙️ Setup & Run":
         setup_country_code = cc
 
         if cc in LOCKED_COUNTRIES:
-            st.warning("🔒 **" + pick + "** contains verified causal impact-evaluation results and is "
+            st.warning("🔒 **" + pick + "** contains published impact-evaluation results and is "
                        "protected from editing — this also avoids cloning its large dataset. To build a "
                        "modified version, give it a new name below; it starts as an independent, fresh entry.")
             _fork_name = st.text_input("New country code for your version", value=cc + "_updated",
@@ -1945,24 +1970,18 @@ The "Since Project" metric can never exceed "Targeted" recovery (logical consist
 
 ---
 
-### Economic Reactivation Model
+### Predicted Economic Reactivation (illustrative)
 
-Converts nightlight recovery to estimated USD values in 4 steps:
+Converts nightlight recovery into a predicted USD figure in 4 steps:
 
-1. **Nightlight recovery** — Observed from the scorecard
-2. **Pre-shock GDP** — National GDP from World Bank WDI for the year before the event
-3. **Affected area GDP** — National GDP x share of affected admin units
-4. **GDP reactivation** — Affected GDP x NL recovery x Henderson elasticity (0.3)
+1. **Observed nightlight recovery** since each UNDP project's own start date, computed from the panel with the scorecard rule (affected units only, capped at 100%)
+2. **Pre-shock GDP** from World Bank WDI for the year before the event
+3. **Affected-area GDP** as the national GDP times the share of affected admin units
+4. **Predicted reactivation** as affected GDP times recovery times the Henderson, Storeygard & Weil (2012) elasticity of 0.3, with each project assigned a share in proportion to its budget
 
-The Henderson, Storeygard & Weil (2012) elasticity of 0.3 means 10% nightlight recovery corresponds to approximately 3% GDP reactivation. This is a global average; local values may differ.
+The elasticity means 10% nightlight recovery corresponds to roughly 3% GDP; it is a global average and local values differ. The predicted ROI divides each project's assigned share by its budget.
 
-Project-specific ROI is calculated by attributing a proportional share of total reactivation based on the project's budget share of total post-event UNDP spending.
-
-**Key limitations:**
-- Correlational estimate, not causal impact
-- UNDP is one of many actors on the ground
-- Budget figures are allocations, not disbursements
-- GDP proportionally distributed across admin units (simplification)
+**These are predictions, not measured returns.** They assume the recovery observed after a project started is attributable to it in proportion to its spending, which the dashboard does not test. Recovery reflects every actor on the ground; budgets are allocations, not disbursements; and GDP is distributed proportionally across admin units. Measured effects require the comparison designs described below.
 
 ---
 
@@ -1975,20 +1994,14 @@ econometric validation where appropriate.
 
 ---
 
-### Causal Impact Analysis
+### Impact Evaluation (Myanmar and Gaza)
 
-For specific cases where geocoded UNDP project locations are available (currently Myanmar and Gaza), 
-the pipeline includes causal impact estimates using formal econometric methods:
+Where geocoded UNDP project locations are available, the pipeline estimates effects with formal comparison designs: difference-in-differences with unit and month fixed effects, Poisson (PPML) estimation on raw radiance, staggered-adoption event studies with parallel-trend tests, and comparison-distance robustness checks.
 
-- **Difference-in-Differences (DiD)** — Compares UNDP-treated vs control areas before and after intervention
-- **Two-Way Fixed Effects** — Controls for time-invariant unit characteristics and common time shocks
-- **Event Study Design** — Tests parallel pre-trends and visualises dynamic treatment effects
-- **Synthetic Control** — Constructs counterfactual for areas without suitable within-country controls
-- **Placebo Tests** — Validates results by assigning artificial treatment dates
-- **Dose-Response Analysis** — Examines whether effects vary with proximity to intervention sites
+- **Myanmar (2025 earthquake).** Townships exposed to UNDP early-recovery programming recovered nighttime luminosity about 19 to 23 percent faster than comparison townships, an estimate that holds across three estimators and passes the reported diagnostics. This is the dashboard's one evaluated effect.
+- **Gaza (conflict).** Nighttime lights cannot identify a programme effect: electricity supply is constrained across the territory and comparison locations are not on parallel paths. Radar backscatter shows a small, localized surface change within about 500 m of intervention sites, consistent with physical works, and no economic effect is claimed. The Gaza evidence is descriptive.
 
-These methods provide the econometric rigour needed for causal attribution, complementing the rapid 
-monitoring provided by the scorecard. Results for Myanmar and Gaza are available in the Impact Measurement tab.
+Results and diagnostics are in the Impact Measurement tab and in the manuscript "From Space to Impact" (replication package in the repository under `paper/`).
 
 ---
 
