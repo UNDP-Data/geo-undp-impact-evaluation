@@ -618,13 +618,10 @@ def recovery_since_start(panel, event_dt, start_dt, threshold=0.10):
 
 PREDICTED_NOTE = (
     '<div style="background:#1f2a1f;border:1px solid #2ea043;border-radius:6px;padding:.7rem 1rem;'
-    'margin:.2rem 0 .8rem 0;font-size:.8rem;color:#c9d1d9;line-height:1.6;">'
-    '<b>Predicted, not measured.</b> The figures below project the nightlight recovery observed in '
-    'affected areas since each UNDP project began onto a standard nightlight-GDP elasticity and the '
-    'pre-shock GDP of those areas. They assume that the recovery observed after a project started is '
-    'attributable to it in proportion to its share of UNDP spending, an assumption this dashboard does '
-    'not test: recovery reflects every actor on the ground, and the scorecard above is correlational. '
-    'Read these as planning-grade orders of magnitude, not as evaluated returns.</div>'
+    'margin:.2rem 0 .8rem 0;font-size:.85rem;color:#c9d1d9;line-height:1.6;">'
+    '<b>Upper-bound prediction, not a measured return.</b> It credits UNDP projects with all the recovery '
+    'seen since they started, in proportion to their budgets. Many other actors contribute, so the actual '
+    'return is likely to be much lower.</div>'
 )
 
 
@@ -1436,7 +1433,7 @@ if mode == "📊 View Results":
                             ("Project budget", _fmt_big(_sel_b), ""),
                             ("NL recovery", "{:.0f}%".format(_rec), _rlbl),
                             ("Predicted reactivation", _fmt_big(_prog_react), "selected project"),
-                            ("Predicted ROI", "{:,.1f}:1".format(_roi), "illustrative"),
+                            ("Predicted ROI", "{:,.1f}:1".format(_roi), "upper bound"),
                         ]
                         _cards_html = '<div style="display:flex;justify-content:center;gap:1.5rem;margin:.8rem 0;">'
                         for _lbl, _val, _sub in _cards:
@@ -1451,34 +1448,6 @@ if mode == "📊 View Results":
                             )
                         _cards_html += '</div>'
                         st.markdown(_cards_html, unsafe_allow_html=True)
-
-                        _expl = (
-                            '<div style="font-size:.85rem;color:#c9d1d9;line-height:1.7;margin:.8rem 0;">'
-                            '<p style="margin:0 0 .6rem 0;"><b>Step 1 - Observed nightlight recovery:</b> '
-                            + '{} nightlight recovery of <b>{:.0f}%</b>'.format(_rlbl.capitalize(), _rec)
-                            + ' was observed across <b>{:,}</b> affected administrative units.</p>'.format(_n_aff)
-                            + '<p style="margin:0 0 .6rem 0;"><b>Step 2 - Pre-shock GDP:</b> '
-                            + 'National GDP before the shock was <b>${:,.0f}</b> ({}, {}). '.format(_nat_gdp, _wb_src, _wb_year)
-                            + 'The affected area ({:,.0f} of {:,.0f} admin units, <b>{:.0%}</b> of the country) '.format(_n_aff, _n_tot, _cov)
-                            + 'is assigned a proportional GDP of <b>${:,.0f}</b>.</p>'.format(_aff_gdp)
-                            + '<p style="margin:0 0 .6rem 0;"><b>Step 3 - Predicted reactivation:</b> '
-                            + 'Applying the Henderson et al. (2012) elasticity of 0.3, {:.0f}% nightlight recovery '.format(_rec)
-                            + 'predicts <b>{:.1f}% GDP reactivation</b>, about <b>${:,.0f}</b> '.format(_gdp_eff, _react)
-                            + 'in economic activity across all actors on the ground.</p>'
-                            + '<p style="margin:0 0 .6rem 0;"><b>Step 4 - Share attributed to this project:</b> '
-                            + 'This project represents <b>{:.1%}</b> of post-event UNDP spending '.format(_bshare)
-                            + '(${:,.0f} of ${:,.0f}). '.format(_sel_b, _tot_b)
-                            + 'Attributing that share yields a predicted <b>${:,.0f}</b>, '.format(_prog_react)
-                            + 'a predicted return of <b>{:,.1f}:1</b> on the project budget.</p></div>'.format(_roi)
-                        )
-                        st.markdown(_expl, unsafe_allow_html=True)
-                        st.caption(
-                            "Prediction for rapid screening, not an evaluated return. Recovery since a project's "
-                            "start reflects all actors on the ground, not just UNDP; the proportional share is an "
-                            "assumption. GDP data: " + _wb_src + " (" + str(_wb_year) + "). Affected-area GDP is a "
-                            "proportional share of national GDP by number of affected admin units. The elasticity "
-                            "of 0.3 is a global average that may differ locally."
-                        )
 
                     # One row: the selected programme only. Other programmes are not listed,
                     # because the proportional-share model gives identical figures to any
@@ -1495,10 +1464,29 @@ if mode == "📊 View Results":
                             "Predicted ROI": "{:,.1f}:1".format(_roi),
                         }])
                         st.dataframe(_row, hide_index=True, width="stretch")
-                        st.caption("Shown for the selected programme only. Choose another programme above to see "
-                                   "its prediction; recovery is measured from each programme's own start date.")
+                        st.caption("Select another project above to see its prediction.")
                         if _elig_note:
                             st.caption(_elig_note)
+                        _src = "World Bank WDI" if str(_wb_src).startswith("World Bank") else "built-in World Bank estimate"
+                        _steps = (
+                            '<div style="font-size:.85rem;color:#c9d1d9;line-height:1.7;margin:.9rem 0 .3rem 0;">'
+                            '<b>How this figure is calculated</b>'
+                            '<ol style="margin:.3rem 0 0 1.1rem;padding:0;">'
+                            "<li><b>Recovery.</b> Nightlights in the {:,} affected areas regained {:.0f}% of their loss "
+                            "since this project started.</li>"
+                            "<li><b>Economy at stake.</b> These areas account for about {} of GDP "
+                            "({:.0%} of admin units; national GDP {}, {}).</li>"
+                            "<li><b>Economic reactivation.</b> With the standard elasticity of 0.3 (Henderson et al., 2012), "
+                            "{:.0f}% more light corresponds to {:.1f}% more GDP, about {} across all actors.</li>"
+                            "<li><b>This project's share.</b> It is {:.0%} of UNDP's post-event budget ({} of {}), "
+                            "so it is credited with {}, a {:,.1f}:1 return on its budget.</li>"
+                            "</ol></div>"
+                        ).format(_n_aff, _rec, _fmt_big(_aff_gdp), _cov, _fmt_big(_nat_gdp), _wb_year,
+                                 _rec, _gdp_eff, _fmt_big(_react),
+                                 _bshare, _fmt_big(_sel_b), _fmt_big(_tot_b), _fmt_big(_prog_react), _roi)
+                        st.markdown(_steps, unsafe_allow_html=True)
+                        st.caption("GDP: " + _src + " (" + str(_wb_year) + "). Affected-area GDP is split evenly "
+                                   "across admin units; the elasticity is a global average and may differ locally.")
 
             except Exception as _re_err:
                 st.caption("Predicted reactivation unavailable: " + str(_re_err)[:150])
