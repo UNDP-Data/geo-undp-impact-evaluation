@@ -1404,7 +1404,7 @@ if mode == "📊 View Results":
                 _prog_react = _react * _bshare
                 _roi = _prog_react / _sel_b if _sel_b > 0 else 0
 
-                with st.expander("Predicted Economic Reactivation (illustrative)", expanded=True):
+                with st.expander("Predicted Economic Reactivation (correlational)", expanded=True):
                     st.markdown(PREDICTED_NOTE, unsafe_allow_html=True)
                     _MIN_REC = 10.0
                     _show = False
@@ -1993,7 +1993,7 @@ The "Since Project" metric can never exceed "Targeted" recovery (logical consist
 
 ---
 
-### Predicted Economic Reactivation (illustrative)
+### Predicted Economic Reactivation (correlational)
 
 Converts nightlight recovery into a predicted USD figure in 4 steps:
 
