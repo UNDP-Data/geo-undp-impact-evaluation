@@ -1353,17 +1353,12 @@ if mode == "📊 View Results":
                     _elig = _post.iloc[0:0].copy()
                 if "is_likely_umbrella" in _elig.columns:
                     _elig = _elig[~_truthy(_elig["is_likely_umbrella"])]
-                # Relevance: 'is_post_disaster' in the register only means "started after the
-                # event", and ml_category is noisy, so neither decides eligibility. A UNDP-provided
-                # 'roi_eligible' column wins if present; otherwise a transparent title rule drops
-                # project types with no plausible link to post-shock economic recovery.
-                _NON_RECOVERY = (r"hiv|aids|tuberculosis|malaria|tb|tb/hi|gc7|global fund|"
-                                 r"biodiversity|survey|field office|development facility|"
-                                 r"engagement facility|machine learning")
+                # Eligibility is a data rule only. Every post-event project with a budget counts:
+                # any project spending (staff, procurement, local purchases) can reach the local
+                # economy, and the dashboard does not judge how a project works. A UNDP-provided
+                # 'roi_eligible' column, if present in the register, overrides this.
                 if "roi_eligible" in _elig.columns:
                     _elig = _elig[_truthy(_elig["roi_eligible"])]
-                elif "title" in _elig.columns:
-                    _elig = _elig[~_elig["title"].astype(str).str.contains(_NON_RECOVERY, case=False, regex=True)]
                 _pid_sel = str(st.session_state.get("sel_pid_" + code)
                                or config["events"].get("selected_project_id", "") or "")
                 _intv_s = str(_intv.date())
@@ -1421,9 +1416,9 @@ if mode == "📊 View Results":
                     elif _sel_b <= 0:
                         st.info('Predictions require a UNDP project with budget data. Select a project above.')
                     elif not _sel_eligible:
-                        st.info("This project type (for example a health grant, a survey, an environmental "
-                                "finance plan or an office facility) has no direct link to post-shock economic "
-                                "recovery, so no economic prediction is shown for it.")
+                        st.info("This project is excluded from predictions in the UNDP project register "
+                                "(an umbrella programme whose components are listed separately, or marked "
+                                "as not eligible), so no prediction is shown for it.")
                     elif _rec < _MIN_REC:
                         st.info("Nightlight recovery since this project started is {:.0f}%, too small to support a "
                                 "meaningful prediction. Predictions are shown once recovery since the project's "
@@ -1471,7 +1466,7 @@ if mode == "📊 View Results":
                             + 'predicts <b>{:.1f}% GDP reactivation</b>, about <b>${:,.0f}</b> '.format(_gdp_eff, _react)
                             + 'in economic activity across all actors on the ground.</p>'
                             + '<p style="margin:0 0 .6rem 0;"><b>Step 4 - Share attributed to this project:</b> '
-                            + 'This project represents <b>{:.1%}</b> of post-event UNDP early-recovery spending '.format(_bshare)
+                            + 'This project represents <b>{:.1%}</b> of post-event UNDP spending '.format(_bshare)
                             + '(${:,.0f} of ${:,.0f}). '.format(_sel_b, _tot_b)
                             + 'Attributing that share yields a predicted <b>${:,.0f}</b>, '.format(_prog_react)
                             + 'a predicted return of <b>{:,.1f}:1</b> on the project budget.</p></div>'.format(_roi)
@@ -1495,7 +1490,7 @@ if mode == "📊 View Results":
                             "Start": str(_intv.date()),
                             "Budget": "${:,.0f}".format(_sel_b),
                             "NL recovery since start": "{:.0f}%".format(_rec),
-                            "Share of post-event recovery budget": "{:.0%}".format(_bshare),
+                            "Share of post-event UNDP budget": "{:.0%}".format(_bshare),
                             "Predicted reactivation": "${:,.0f}".format(_prog_react),
                             "Predicted ROI": "{:,.1f}:1".format(_roi),
                         }])
@@ -2019,7 +2014,7 @@ Converts nightlight recovery into a predicted USD figure in 4 steps:
 3. **Affected-area GDP** as the national GDP times the share of affected admin units
 4. **Predicted reactivation** as affected GDP times recovery times the Henderson, Storeygard & Weil (2012) elasticity of 0.3, with each project assigned a share in proportion to its budget
 
-The elasticity means 10% nightlight recovery corresponds to roughly 3% GDP; it is a global average and local values differ. The predicted ROI divides each project's assigned share by its budget. Only projects classified in the UNDP register as recovery-relevant are included (health grants, surveys, environmental finance plans and office facilities are excluded), umbrella programmes are excluded to avoid double counting, and no prediction is shown when recovery since a project's start is below 10%.
+The elasticity means 10% nightlight recovery corresponds to roughly 3% GDP; it is a global average and local values differ. The predicted ROI divides each project's assigned share by its budget. Every post-event project with a budget is included, because any project spending (staff, procurement, local purchases) can reach the local economy. Umbrella programmes flagged in the register are excluded to avoid double counting, and no prediction is shown when recovery since a project's start is below 10%, where the satellite signal is too weak to convert into dollars.
 
 **These are predictions, not measured returns.** They assume the recovery observed after a project started is attributable to it in proportion to its spending, which the dashboard does not test. Recovery reflects every actor on the ground; budgets are allocations, not disbursements; and GDP is distributed proportionally across admin units. Measured effects require the comparison designs described below.
 
