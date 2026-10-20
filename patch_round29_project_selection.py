@@ -72,13 +72,17 @@ rep('''                _post = _undp[_undp["start_date"] >= _evt].copy()
                     _elig = _post.iloc[0:0].copy()
                 if "is_likely_umbrella" in _elig.columns:
                     _elig = _elig[~_truthy(_elig["is_likely_umbrella"])]
-                if "is_post_disaster" in _elig.columns:
-                    _pdz = _elig[_truthy(_elig["is_post_disaster"])]
-                    if len(_pdz):
-                        _elig = _pdz
-                    else:
-                        _elig_note = ("No project in this country's register is classified as a post-disaster "
-                                      "intervention, so all post-event projects with a budget are included.")
+                # Relevance: 'is_post_disaster' in the register only means "started after the
+                # event", and ml_category is noisy, so neither decides eligibility. A UNDP-provided
+                # 'roi_eligible' column wins if present; otherwise a transparent title rule drops
+                # project types with no plausible link to post-shock economic recovery.
+                _NON_RECOVERY = (r"hiv|aids|tuberculosis|malaria|\btb\b|tb/hi|gc7|global fund|"
+                                 r"biodiversity|survey|field office|development facility|"
+                                 r"engagement facility|machine learning")
+                if "roi_eligible" in _elig.columns:
+                    _elig = _elig[_truthy(_elig["roi_eligible"])]
+                elif "title" in _elig.columns:
+                    _elig = _elig[~_elig["title"].astype(str).str.contains(_NON_RECOVERY, case=False, regex=True)]
                 _pid_sel = str(st.session_state.get("sel_pid_" + code)
                                or config["events"].get("selected_project_id", "") or "")
                 _intv_s = str(_intv.date())
@@ -129,9 +133,9 @@ rep('''                    if not _has_nl:
                     elif _sel_b <= 0:
                         st.info('Predictions require a UNDP project with budget data. Select a project above.')
                     elif not _sel_eligible:
-                        st.info("This project is not classified as an early-recovery or post-disaster intervention "
-                                "in the UNDP project register (or is an umbrella programme whose components are "
-                                "listed separately), so no economic prediction is shown for it.")
+                        st.info("This project type (for example a health grant, a survey, an environmental "
+                                "finance plan or an office facility) has no direct link to post-shock economic "
+                                "recovery, so no economic prediction is shown for it.")
                     elif _rec < _MIN_REC:
                         st.info("Nightlight recovery since this project started is {:.0f}%, too small to support a "
                                 "meaningful prediction. Predictions are shown once recovery since the project's "
@@ -155,7 +159,7 @@ rep('''                    if _has_nl and _sel_b > 0:
 '''                    if _show:
                         _sel_title = str(_sel_row.get("title", "Selected programme"))[:90]''')
 rep('"Share of post-event UNDP budget"', '"Share of post-event recovery budget"')
-rep("'of post-event UNDP spending '", "'of post-event UNDP early-recovery spending '")
+rep("of post-event UNDP spending ", "of post-event UNDP early-recovery spending ")
 rep('''"its prediction; recovery is measured from each programme's own start date.")''',
 '''"its prediction; recovery is measured from each programme's own start date.")
                         if _elig_note:
@@ -174,8 +178,9 @@ rep('''            except Exception:
 # ── 8. About page ──
 rep("The predicted ROI divides each project's assigned share by its budget.",
     "The predicted ROI divides each project's assigned share by its budget. Only projects classified in the "
-    "UNDP register as post-disaster interventions are included, umbrella programmes are excluded to avoid "
-    "double counting, and no prediction is shown when recovery since a project's start is below 10%.")
+    "UNDP register as recovery-relevant are included (health grants, surveys, environmental finance plans and "
+    "office facilities are excluded), umbrella programmes are excluded to avoid double counting, and no "
+    "prediction is shown when recovery since a project's start is below 10%.")
 
 compile(s, p, "exec")
 open(p, "w", encoding="utf-8").write(s)
