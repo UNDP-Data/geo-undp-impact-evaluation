@@ -126,11 +126,23 @@ LOCKED_COUNTRIES = {"mmr", "pse"}  # Myanmar, Gaza
 
 
 def all_visible_config_names():
-    """Shared countries plus this user's own additions, merged, no dupes,
-    no username tags — exactly what the dropdown should show."""
+    """Shared countries plus this user's own additions, one entry per country.
+    Several config files can describe the same country (e.g. a legacy
+    'afghanistan.yaml' and 'afg.yaml'); keep one per country_code, preferring
+    the file named after the code, which is the one Setup & Run writes."""
     shared = {Path(p).stem for p in glob.glob(str(REPO_ROOT / "config" / "*.yaml"))}
     own = {Path(p).stem for p in glob.glob(str(user_workspace_root() / "config" / "*.yaml"))}
-    return sorted(shared | own)
+    by_code = {}
+    for name in sorted(shared | own):
+        try:
+            with open(resolve_config_path(name)) as _f:
+                _cc = (yaml.safe_load(_f) or {}).get("country_code", name)
+        except Exception:
+            _cc = name
+        _cc = str(_cc).lower()
+        if _cc not in by_code or name == _cc:
+            by_code[_cc] = name
+    return sorted(by_code.values())
 
 
 st.set_page_config(page_title="UNDP Early Recovery Impact", page_icon="🌍",
@@ -1112,7 +1124,12 @@ if mode == "📊 View Results":
             pass
 
     # ── Region focus: recompute trends for a subset of admin units ──
-    has_scorecard = render_scorecard()
+    try:
+        has_scorecard = render_scorecard()
+    except Exception as _sc_err:
+        st.warning("The recovery scorecard for this country could not be displayed (" + str(_sc_err)[:120]
+                   + "). Re-running the 🎯 Scorecard stage in Setup & Run usually fixes this.")
+        has_scorecard = False
 
     with st.expander("🌍 Interactive Geospatial Analysis — trends and maps by region", expanded=True):
         try:
@@ -1492,9 +1509,9 @@ if mode == "📊 View Results":
                 st.caption("Predicted reactivation unavailable: " + str(_re_err)[:150])
 
             # DATA SOURCES & AVAILABILITY
-    if has_scorecard:
+    if resolve_dir("data", code).exists():
         import base64 as _b64
-        _logos_dir = Path("logos")
+        _logos_dir = REPO_ROOT / "logos"
         _row1 = [
             ("undp.png", "UNDP Projects", str(resolve_dir("data", code) / "external" / "undp_projects.csv")),
             ("nasa.png", "Nightlights (VIIRS)", str(resolve_dir("data", code) / f"gee_panel_{code}_centroid.csv")),
