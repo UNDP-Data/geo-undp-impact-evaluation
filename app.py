@@ -42,30 +42,41 @@ def safe_image(path, **kwargs):
         return False
 
 
-def two_up(left, right, height=330):
-    """A chart and its map side by side in two frames of identical height.
-    Figures are produced at slightly different proportions, so equal columns
-    alone give unequal heights; object-fit keeps each image's aspect ratio."""
-    import base64 as _b64
-    def _tag(path):
-        try:
-            from PIL import Image
-            with Image.open(path) as _im:
-                _im.verify()
-            b = _b64.b64encode(Path(path).read_bytes()).decode()
-            return ('<img src="data:image/png;base64,' + b + '" style="width:100%;height:'
-                    + str(height) + 'px;object-fit:contain;display:block;"/>')
-        except Exception:
-            return ('<div style="height:' + str(height) + 'px;display:flex;align-items:center;'
-                    'justify-content:center;color:#8b949e;font-size:.8rem;">(figure not available)</div>')
-    frame = ('flex:1;min-width:0;background:#161b22;border:1px solid #30363d;'
-             'border-radius:6px;padding:6px;')
-    components.html(
-        '<body style="margin:0;background:transparent;">'
-        '<div style="display:flex;gap:12px;align-items:stretch;">'
-        '<div style="' + frame + '">' + _tag(left) + '</div>'
-        '<div style="' + frame + '">' + _tag(right) + '</div>'
-        '</div></body>', height=height + 20, scrolling=False)
+@st.cache_data(show_spinner=False)
+def _padded_pair(left, right, left_mtime, right_mtime):
+    """PNG bytes of two images padded (with each image's own background colour)
+    to a common width:height ratio, so equal columns give equal heights.
+    The mtime arguments only invalidate the cache when a figure is regenerated."""
+    import io
+    from PIL import Image
+    ims = [Image.open(pth).convert("RGB") for pth in (left, right)]
+    target = max(im.width / im.height for im in ims)
+    out = []
+    for im in ims:
+        w, h = im.size
+        if w / h < target - 1e-6:
+            new_w = int(round(h * target))
+            canvas = Image.new("RGB", (new_w, h), im.getpixel((0, 0)))
+            canvas.paste(im, ((new_w - w) // 2, 0))
+            im = canvas
+        buf = io.BytesIO(); im.save(buf, format="PNG"); out.append(buf.getvalue())
+    return out
+
+
+def two_up(left, right):
+    """A chart and its map side by side at the same height, with the usual
+    enlarge button and full resolution preserved."""
+    try:
+        l_b, r_b = _padded_pair(str(left), str(right), os.path.getmtime(left), os.path.getmtime(right))
+    except Exception:
+        l_b, r_b = None, None
+    c1, c2 = st.columns(2)
+    with c1:
+        if l_b: st.image(l_b, width='stretch')
+        else: safe_image(str(left), width='stretch')
+    with c2:
+        if r_b: st.image(r_b, width='stretch')
+        else: safe_image(str(right), width='stretch')
 
 
 # ─── MULTI-USER WORKSPACES ─────────────────────────────────────────────────
