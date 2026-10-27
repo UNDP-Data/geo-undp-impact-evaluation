@@ -232,15 +232,15 @@ st.markdown("""
 # / resolve_dir above); nothing here is a real login and it should not be
 # treated as one.
 if "username" not in st.session_state:
-    st.markdown("""
-    <div class="hero">
-        <h1>UNDP Early Recovery Impact</h1>
-        <p>Enter your name to continue. This keeps your changes separate from everyone else's.</p>
-    </div>
-    """, unsafe_allow_html=True)
     _known_users = _load_users()
     _mid = st.columns([1, 1.3, 1])[1]
     with _mid:
+        st.markdown("""
+    <div class="hero" style="padding:1.4rem 1.6rem;">
+        <h1 style="font-size:1.5rem;">UNDP Early Recovery Impact</h1>
+        <p>Enter your name to continue. This keeps your changes separate from everyone else's.</p>
+    </div>
+    """, unsafe_allow_html=True)
         if _known_users:
             st.markdown("**Continue as an existing user**")
             _pick_user = st.selectbox("Existing users", _known_users,
