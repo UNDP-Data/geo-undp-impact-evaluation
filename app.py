@@ -1487,12 +1487,15 @@ if mode == "📊 View Results":
                         st.info("This project is excluded from predictions in the UNDP project register "
                                 "(an umbrella programme whose components are listed separately, or marked "
                                 "as not eligible), so no prediction is shown for it.")
-                    elif _rec < _MIN_REC:
-                        st.info("Nightlight recovery since this project started is {:.0f}%, too small to support a "
-                                "meaningful prediction. Predictions are shown once recovery since the project's "
-                                "start reaches {:.0f}%.".format(_rec, _MIN_REC))
+                    elif _rec <= 0:
+                        st.info("No nightlight recovery has been observed since this project started, "
+                                "so there is nothing to project yet.")
                     else:
                         _show = True
+                    if _show and _rec < _MIN_REC:
+                        st.caption("Weak signal: recovery since this project started is only {:.0f}%, below the 10% "
+                                   "level at which the scorecard treats a change as meaningful, so this prediction "
+                                   "is especially uncertain.".format(_rec))
                     if _show:
                         def _fmt_big(v):
                             if v >= 1e9: return "${:.1f}B".format(v/1e9)
