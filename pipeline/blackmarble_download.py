@@ -37,37 +37,22 @@ def load_config(path):
 
 
 def init_gee():
-    """Service-account auth, handling both file paths and raw JSON strings."""
+    """Service-account auth, mirroring pipeline.gee_export_debug (known-good)."""
     import ee
-
     _gee_project = os.environ.get("GEE_PROJECT", "") or None
-    _sa_env = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "").strip()
-    _creds = None
-
-    # 1. Handle raw JSON string
-    if _sa_env.startswith("{"):
-        _sa_email = json.loads(_sa_env).get("client_email")
-        _creds = ee.ServiceAccountCredentials(_sa_email, key_data=_sa_env)
-
-    # 2. Handle file path (with fallbacks)
-    else:
-        _sa_path = _sa_env
-        if not _sa_path:
-            for _cand in [
-                "gee_service_account.json",
-                os.path.join(os.path.expanduser("~"), ".undp_dashboard", "gee_service_account.json")
-            ]:
-                if os.path.exists(_cand):
-                    _sa_path = _cand
-                    break
-
-        if _sa_path and os.path.exists(_sa_path):
-            with open(_sa_path) as _f:
-                _sa_email = json.load(_f).get("client_email")
-            _creds = ee.ServiceAccountCredentials(_sa_email, _sa_path)
-
-    # 3. Initialize
-    if _creds:
+    _sa_json = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "")
+    if not _sa_json:
+        for _cand in ["gee_service_account.json",
+                      os.path.join(os.path.expanduser("~"), ".undp_dashboard",
+                                   "gee_service_account.json"),
+                      "/opt/undp-dashboard/gee_service_account.json"]:
+            if os.path.exists(_cand):
+                _sa_json = _cand
+                break
+    if _sa_json and os.path.exists(_sa_json):
+        with open(_sa_json) as _f:
+            _sa_email = json.load(_f).get("client_email")
+        _creds = ee.ServiceAccountCredentials(_sa_email, _sa_json)
         if _gee_project:
             ee.Initialize(_creds, project=_gee_project)
         else:
@@ -76,7 +61,6 @@ def init_gee():
     else:
         ee.Initialize()
         print("✓ GEE Initialized (default credentials)")
-
     return ee
 
 
@@ -134,7 +118,6 @@ def main():
         return 0
     latest = ee.Date(coll.aggregate_max("system:time_start")).format("YYYY-MM-dd").getInfo()
     print(f"  Daily images: {n} | most recent: {latest}")
-
 
     rows = []
     months = pd.period_range(start_ts, end, freq="M")

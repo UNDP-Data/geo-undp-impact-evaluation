@@ -42,6 +42,43 @@ def safe_image(path, **kwargs):
         return False
 
 
+@st.cache_data(show_spinner=False)
+def _padded_pair(left, right, left_mtime, right_mtime):
+    """PNG bytes of two images padded (with each image's own background colour)
+    to a common width:height ratio, so equal columns give equal heights.
+    The mtime arguments only invalidate the cache when a figure is regenerated."""
+    import io
+    from PIL import Image
+    ims = [Image.open(pth).convert("RGB") for pth in (left, right)]
+    target = max(im.width / im.height for im in ims)
+    out = []
+    for im in ims:
+        w, h = im.size
+        if w / h < target - 1e-6:
+            new_w = int(round(h * target))
+            canvas = Image.new("RGB", (new_w, h), im.getpixel((0, 0)))
+            canvas.paste(im, ((new_w - w) // 2, 0))
+            im = canvas
+        buf = io.BytesIO(); im.save(buf, format="PNG"); out.append(buf.getvalue())
+    return out
+
+
+def two_up(left, right):
+    """A chart and its map side by side at the same height, with the usual
+    enlarge button and full resolution preserved."""
+    try:
+        l_b, r_b = _padded_pair(str(left), str(right), os.path.getmtime(left), os.path.getmtime(right))
+    except Exception:
+        l_b, r_b = None, None
+    c1, c2 = st.columns(2)
+    with c1:
+        if l_b: st.image(l_b, width='stretch')
+        else: safe_image(str(left), width='stretch')
+    with c2:
+        if r_b: st.image(r_b, width='stretch')
+        else: safe_image(str(right), width='stretch')
+
+
 # ─── MULTI-USER WORKSPACES ─────────────────────────────────────────────────
 # Each user gets an isolated, copy-on-write view of config/data/outputs.
 # Shared (pre-built) countries stay read-only until a user edits or re-runs
@@ -126,11 +163,23 @@ LOCKED_COUNTRIES = {"mmr", "pse"}  # Myanmar, Gaza
 
 
 def all_visible_config_names():
-    """Shared countries plus this user's own additions, merged, no dupes,
-    no username tags — exactly what the dropdown should show."""
+    """Shared countries plus this user's own additions, one entry per country.
+    Several config files can describe the same country (e.g. a legacy
+    'afghanistan.yaml' and 'afg.yaml'); keep one per country_code, preferring
+    the file named after the code, which is the one Setup & Run writes."""
     shared = {Path(p).stem for p in glob.glob(str(REPO_ROOT / "config" / "*.yaml"))}
     own = {Path(p).stem for p in glob.glob(str(user_workspace_root() / "config" / "*.yaml"))}
-    return sorted(shared | own)
+    by_code = {}
+    for name in sorted(shared | own):
+        try:
+            with open(resolve_config_path(name)) as _f:
+                _cc = (yaml.safe_load(_f) or {}).get("country_code", name)
+        except Exception:
+            _cc = name
+        _cc = str(_cc).lower()
+        if _cc not in by_code or name == _cc:
+            by_code[_cc] = name
+    return sorted(by_code.values())
 
 
 st.set_page_config(page_title="UNDP Early Recovery Impact", page_icon="🌍",
@@ -183,37 +232,36 @@ st.markdown("""
 # / resolve_dir above); nothing here is a real login and it should not be
 # treated as one.
 if "username" not in st.session_state:
-    st.markdown("""
-    <div class="hero">
-        <h1>UNDP Early Recovery Impact</h1>
+    _known_users = _load_users()
+    _mid = st.columns([1, 1.3, 1])[1]
+    with _mid:
+        st.markdown("""
+    <div class="hero" style="padding:1.4rem 1.6rem;">
+        <h1 style="font-size:1.5rem;">UNDP Early Recovery Impact</h1>
         <p>Enter your name to continue. This keeps your changes separate from everyone else's.</p>
     </div>
     """, unsafe_allow_html=True)
-    _known_users = _load_users()
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Continue as an existing user**")
         if _known_users:
+            st.markdown("**Continue as an existing user**")
             _pick_user = st.selectbox("Existing users", _known_users,
                                        key="pick_existing_user", label_visibility="collapsed")
-            if st.button("Continue", key="continue_existing", width='stretch'):
+            if st.button("Continue", key="continue_existing", width='stretch', type="primary"):
                 st.session_state.username = _pick_user
                 st.rerun()
-        else:
-            st.caption("No users yet — create the first one on the right.")
-    with c2:
-        st.markdown("**Or create a new user**")
-        _new_user = st.text_input("New username", key="new_username_input",
-                                   label_visibility="collapsed", placeholder="e.g. carlo, joelle...")
-        if st.button("Create & continue", key="create_user", width='stretch', type="primary"):
-            _clean = "".join(ch for ch in _new_user.strip().lower().replace(" ", "_")
-                              if ch.isalnum() or ch in "_-")
-            if not _clean:
-                st.error("Please enter a valid name (letters, numbers, - or _).")
-            else:
-                _register_user(_clean)
-                st.session_state.username = _clean
-                st.rerun()
+            st.markdown("")
+        with st.expander("Don't have a user yet? Create one here", expanded=not _known_users):
+            _new_user = st.text_input("New username", key="new_username_input",
+                                       label_visibility="collapsed", placeholder="Your name, e.g. carlo")
+            if st.button("Create & continue", key="create_user", width='stretch',
+                         type="secondary" if _known_users else "primary"):
+                _clean = "".join(ch for ch in _new_user.strip().lower().replace(" ", "_")
+                                  if ch.isalnum() or ch in "_-")
+                if not _clean:
+                    st.error("Please enter a valid name (letters, numbers, - or _).")
+                else:
+                    _register_user(_clean)
+                    st.session_state.username = _clean
+                    st.rerun()
     st.stop()
 
 USERNAME = st.session_state.username
@@ -618,13 +666,10 @@ def recovery_since_start(panel, event_dt, start_dt, threshold=0.10):
 
 PREDICTED_NOTE = (
     '<div style="background:#1f2a1f;border:1px solid #2ea043;border-radius:6px;padding:.7rem 1rem;'
-    'margin:.2rem 0 .8rem 0;font-size:.8rem;color:#c9d1d9;line-height:1.6;">'
-    '<b>Predicted, not measured.</b> The figures below project the nightlight recovery observed in '
-    'affected areas since each UNDP project began onto a standard nightlight-GDP elasticity and the '
-    'pre-shock GDP of those areas. They assume that the recovery observed after a project started is '
-    'attributable to it in proportion to its share of UNDP spending, an assumption this dashboard does '
-    'not test: recovery reflects every actor on the ground, and the scorecard above is correlational. '
-    'Read these as planning-grade orders of magnitude, not as evaluated returns.</div>'
+    'margin:.2rem 0 .8rem 0;font-size:.85rem;color:#c9d1d9;line-height:1.6;">'
+    '<b>Upper-bound prediction, not a measured return.</b> It credits UNDP projects with all the recovery '
+    'seen since they started, in proportion to their budgets. Many other actors contribute, so the actual '
+    'return is likely to be much lower.</div>'
 )
 
 
@@ -1074,25 +1119,34 @@ if mode == "📊 View Results":
                 _post_u = _udf[_udf['start_date'] >= pd.Timestamp(event_date)].dropna(subset=['start_date']).sort_values('start_date')
                 if len(_post_u) > 0:
                     _opts = []
-                    for _, _r in _post_u.iterrows():
+                    for _i, (_, _r) in enumerate(_post_u.iterrows()):
                         _d = _r['start_date'].strftime('%Y-%m-%d')
                         _t = str(_r.get('title',''))[:60]
                         _b = "${:,.0f}".format(_r['total_budget']) if pd.notna(_r.get('total_budget')) else ""
-                        _opts.append({"label": _d + " - " + _t + " " + _b, "date": _d})
+                        _pid = str(_r.get('project_id', '')) if pd.notna(_r.get('project_id', None)) else "row" + str(_i)
+                        _opts.append({"label": _d + " - " + _t + " " + _b, "date": _d, "pid": _pid})
                     _cur = config['events'].get('intervention_start', event_date)
-                    _cidx = 0
-                    for _i, _o in enumerate(_opts):
-                        if _o['date'] == _cur: _cidx = _i; break
+                    _cur_pid = str(st.session_state.get('sel_pid_' + code)
+                                   or config['events'].get('selected_project_id', '') or '')
+                    _cidx = next((i for i, o in enumerate(_opts)
+                                  if o['pid'] == _cur_pid and o['date'] == str(_cur)), None)
+                    if _cidx is None:
+                        _cidx = next((i for i, o in enumerate(_opts) if o['date'] == str(_cur)), 0)
                     st.markdown('<div class="section-title">UNDP Project</div>', unsafe_allow_html=True)
                     _pick = st.selectbox("Select project", range(len(_opts)),
                         format_func=lambda i: _opts[i]['label'], index=_cidx, key="undp_proj_top")
                     _nint = _opts[_pick]['date']
-                    if _nint != _cur:
+                    _npid = _opts[_pick]['pid']
+                    if _nint == str(_cur):
+                        st.session_state['sel_pid_' + code] = _npid
+                    if _nint != str(_cur):
                         if code in LOCKED_COUNTRIES:
                             st.warning("🔒 This is a protected country with published results. Use Setup & Run "
                                        "to create your own version under a new name if you'd like to explore this.")
                         else:
                             config['events']['intervention_start'] = _nint
+                            config['events']['selected_project_id'] = _npid
+                            st.session_state['sel_pid_' + code] = _npid
                             _cfg_write_path = resolve_config_path(selected, for_write=True)
                             resolve_dir("data", code, for_write=True)      # ensure user has own copy to read/write
                             resolve_dir("outputs", code, for_write=True)   # (cloned from shared on first touch)
@@ -1106,7 +1160,30 @@ if mode == "📊 View Results":
             pass
 
     # ── Region focus: recompute trends for a subset of admin units ──
-    has_scorecard = render_scorecard()
+    _pdf_key = "pdf_" + code
+    _pdf_cols = st.columns([3, 1.1, 1.1])
+    with _pdf_cols[1]:
+        if st.button("📄 Prepare PDF report", key="prep_pdf_" + code, width='stretch'):
+            try:
+                from pipeline.report_pdf import build_report
+                with st.spinner("Building the report..."):
+                    st.session_state[_pdf_key] = build_report(
+                        code, config, resolve_dir("outputs", code), resolve_dir("data", code),
+                        roi=st.session_state.get("roi_summary_" + code),
+                        username=st.session_state.get("username", ""))
+            except Exception as _pe:
+                st.error("Report could not be built: " + str(_pe)[:150])
+    with _pdf_cols[2]:
+        if st.session_state.get(_pdf_key):
+            st.download_button("⬇️ Download report", data=st.session_state[_pdf_key],
+                               file_name=code + "_early_recovery_report.pdf", mime="application/pdf",
+                               key="dl_pdf_" + code, width='stretch', type="primary")
+    try:
+        has_scorecard = render_scorecard()
+    except Exception as _sc_err:
+        st.warning("The recovery scorecard for this country could not be displayed (" + str(_sc_err)[:120]
+                   + "). Re-running the 🎯 Scorecard stage in Setup & Run usually fixes this.")
+        has_scorecard = False
 
     with st.expander("🌍 Interactive Geospatial Analysis — trends and maps by region", expanded=True):
         try:
@@ -1334,6 +1411,34 @@ if mode == "📊 View Results":
                 _post = _undp[_undp["start_date"] >= _evt].copy()
                 if "total_budget" not in _post.columns and "budget" in _post.columns:
                     _post["total_budget"] = _post["budget"]
+
+                def _truthy(_s):
+                    return _s.astype(str).str.strip().str.lower().isin(["true", "1", "1.0", "yes", "y"])
+                _elig_note = ""
+                if "total_budget" in _post.columns:
+                    _elig = _post[pd.to_numeric(_post["total_budget"], errors="coerce").fillna(0) > 0].copy()
+                else:
+                    _elig = _post.iloc[0:0].copy()
+                if "is_likely_umbrella" in _elig.columns:
+                    _elig = _elig[~_truthy(_elig["is_likely_umbrella"])]
+                # Eligibility is a data rule only. Every post-event project with a budget counts:
+                # any project spending (staff, procurement, local purchases) can reach the local
+                # economy, and the dashboard does not judge how a project works. A UNDP-provided
+                # 'roi_eligible' column, if present in the register, overrides this.
+                if "roi_eligible" in _elig.columns:
+                    _elig = _elig[_truthy(_elig["roi_eligible"])]
+                _pid_sel = str(st.session_state.get("sel_pid_" + code)
+                               or config["events"].get("selected_project_id", "") or "")
+                _intv_s = str(_intv.date())
+                _sel_row = None
+                if _pid_sel and "project_id" in _post.columns:
+                    _m = _post[(_post["project_id"].astype(str) == _pid_sel)
+                               & (_post["start_date"].dt.date.astype(str) == _intv_s)]
+                    if len(_m): _sel_row = _m.iloc[0]
+                if _sel_row is None:
+                    _m = _post[_post["start_date"].dt.date.astype(str) == _intv_s]
+                    if len(_m): _sel_row = _m.iloc[0]
+                _sel_eligible = _sel_row is not None and _sel_row.name in _elig.index
                 _sc_p = figures_dir / "scorecard_data.csv"
                 _nl_ov, _nl_un, _n_aff, _n_tot = 0.0, 0.0, 0, 0
                 if _sc_p.exists():
@@ -1360,31 +1465,38 @@ if mode == "📊 View Results":
                 _aff_gdp = _nat_gdp * _cov
                 _sel_b, _tot_b = 0.0, 0.0
                 if "total_budget" in _post.columns:
-                    _tot_b = _post["total_budget"].dropna().sum()
-                    _sm = _post[_post["start_date"].dt.date.astype(str) == str(_intv.date())]
-                    if not _sm.empty and pd.notna(_sm.iloc[0]["total_budget"]):
-                        _sel_b = float(_sm.iloc[0]["total_budget"])
-                    elif not _post.dropna(subset=["total_budget"]).empty:
-                        _sel_b = float(_post.dropna(subset=["total_budget"]).iloc[0]["total_budget"])
-                if _nl_un > 0:
-                    _rec = _nl_un; _rlbl = "since selected project"
-                elif _nl_ov > 0:
-                    _rec = _nl_ov; _rlbl = "overall"
-                else:
-                    _rec = 0; _rlbl = "N/A"
+                    _tot_b = float(pd.to_numeric(_elig["total_budget"], errors="coerce").fillna(0).sum())
+                    if _sel_row is not None and pd.notna(_sel_row.get("total_budget")):
+                        _sel_b = float(_sel_row["total_budget"])
+                _rec = _nl_un; _rlbl = "since selected project"
                 _gdp_eff = _rec * _EL
                 _react = _aff_gdp * (_gdp_eff / 100)
                 _bshare = _sel_b / _tot_b if _tot_b > 0 else 1.0
                 _prog_react = _react * _bshare
                 _roi = _prog_react / _sel_b if _sel_b > 0 else 0
 
-                with st.expander("Predicted Economic Reactivation (illustrative)", expanded=True):
+                with st.expander("Predicted Economic Reactivation (correlational)", expanded=True):
                     st.markdown(PREDICTED_NOTE, unsafe_allow_html=True)
+                    _MIN_REC = 10.0
+                    _show = False
                     if not _has_nl:
                         st.info('Predictions require nightlight recovery data.')
                     elif _sel_b <= 0:
                         st.info('Predictions require a UNDP project with budget data. Select a project above.')
-                    if _has_nl and _sel_b > 0:
+                    elif not _sel_eligible:
+                        st.info("This project is excluded from predictions in the UNDP project register "
+                                "(an umbrella programme whose components are listed separately, or marked "
+                                "as not eligible), so no prediction is shown for it.")
+                    elif _rec <= 0:
+                        st.info("No nightlight recovery has been observed since this project started, "
+                                "so there is nothing to project yet.")
+                    else:
+                        _show = True
+                    if _show and _rec < _MIN_REC:
+                        st.caption("Weak signal: recovery since this project started is only {:.0f}%, below the 10% "
+                                   "level at which the scorecard treats a change as meaningful, so this prediction "
+                                   "is especially uncertain.".format(_rec))
+                    if _show:
                         def _fmt_big(v):
                             if v >= 1e9: return "${:.1f}B".format(v/1e9)
                             if v >= 1e6: return "${:.1f}M".format(v/1e6)
@@ -1395,7 +1507,7 @@ if mode == "📊 View Results":
                             ("Project budget", _fmt_big(_sel_b), ""),
                             ("NL recovery", "{:.0f}%".format(_rec), _rlbl),
                             ("Predicted reactivation", _fmt_big(_prog_react), "selected project"),
-                            ("Predicted ROI", "{:,.1f}:1".format(_roi), "illustrative"),
+                            ("Predicted ROI", "{:,.1f}:1".format(_roi), "upper bound"),
                         ]
                         _cards_html = '<div style="display:flex;justify-content:center;gap:1.5rem;margin:.8rem 0;">'
                         for _lbl, _val, _sub in _cards:
@@ -1410,47 +1522,18 @@ if mode == "📊 View Results":
                             )
                         _cards_html += '</div>'
                         st.markdown(_cards_html, unsafe_allow_html=True)
-
-                        _expl = (
-                            '<div style="font-size:.85rem;color:#c9d1d9;line-height:1.7;margin:.8rem 0;">'
-                            '<p style="margin:0 0 .6rem 0;"><b>Step 1 - Observed nightlight recovery:</b> '
-                            + '{} nightlight recovery of <b>{:.0f}%</b>'.format(_rlbl.capitalize(), _rec)
-                            + ' was observed across <b>{:,}</b> affected administrative units.</p>'.format(_n_aff)
-                            + '<p style="margin:0 0 .6rem 0;"><b>Step 2 - Pre-shock GDP:</b> '
-                            + 'National GDP before the shock was <b>${:,.0f}</b> ({}, {}). '.format(_nat_gdp, _wb_src, _wb_year)
-                            + 'The affected area ({:,.0f} of {:,.0f} admin units, <b>{:.0%}</b> of the country) '.format(_n_aff, _n_tot, _cov)
-                            + 'is assigned a proportional GDP of <b>${:,.0f}</b>.</p>'.format(_aff_gdp)
-                            + '<p style="margin:0 0 .6rem 0;"><b>Step 3 - Predicted reactivation:</b> '
-                            + 'Applying the Henderson et al. (2012) elasticity of 0.3, {:.0f}% nightlight recovery '.format(_rec)
-                            + 'predicts <b>{:.1f}% GDP reactivation</b>, about <b>${:,.0f}</b> '.format(_gdp_eff, _react)
-                            + 'in economic activity across all actors on the ground.</p>'
-                            + '<p style="margin:0 0 .6rem 0;"><b>Step 4 - Share attributed to this project:</b> '
-                            + 'This project represents <b>{:.1%}</b> of post-event UNDP spending '.format(_bshare)
-                            + '(${:,.0f} of ${:,.0f}). '.format(_sel_b, _tot_b)
-                            + 'Attributing that share yields a predicted <b>${:,.0f}</b>, '.format(_prog_react)
-                            + 'a predicted return of <b>{:,.1f}:1</b> on the project budget.</p></div>'.format(_roi)
-                        )
-                        st.markdown(_expl, unsafe_allow_html=True)
-                        st.caption(
-                            "Prediction for rapid screening, not an evaluated return. Recovery since a project's "
-                            "start reflects all actors on the ground, not just UNDP; the proportional share is an "
-                            "assumption. GDP data: " + _wb_src + " (" + str(_wb_year) + "). Affected-area GDP is a "
-                            "proportional share of national GDP by number of affected admin units. The elasticity "
-                            "of 0.3 is a global average that may differ locally."
-                        )
-                    elif _has_nl:
-                        st.metric("NL recovery", "{:.0f}%".format(_rec))
-                        st.markdown("Recovery detected but no project budget available for a prediction.")
-                    else:
-                        st.info("Nightlights show no measurable recovery yet. Predictions appear once recovery is detected.")
+                        st.session_state["roi_summary_" + code] = {
+                            "title": str(_sel_row.get("title", "")) if _sel_row is not None else "",
+                            "start": str(_intv.date()), "budget": _sel_b, "rec": _rec, "n_aff": _n_aff,
+                            "cov": _cov, "nat_gdp": _nat_gdp, "gdp_year": _wb_year, "aff_gdp": _aff_gdp,
+                            "gdp_eff": _gdp_eff, "react_all": _react, "share": _bshare, "tot_budget": _tot_b,
+                            "react_project": _prog_react, "roi": _roi}
 
                     # One row: the selected programme only. Other programmes are not listed,
                     # because the proportional-share model gives identical figures to any
                     # programmes sharing a start date, which reads as an error.
-                    if _has_nl and _sel_b > 0:
-                        _sel_rows = _post[_post["start_date"] == _intv] if "start_date" in _post.columns else _post.iloc[0:0]
-                        _sel_title = ("; ".join(_sel_rows["title"].astype(str).str[:60])
-                                      if "title" in _post.columns and len(_sel_rows) else "Selected programme")
+                    if _show:
+                        _sel_title = str(_sel_row.get("title", "Selected programme"))[:90]
                         _row = pd.DataFrame([{
                             "Programme": _sel_title,
                             "Start": str(_intv.date()),
@@ -1461,16 +1544,37 @@ if mode == "📊 View Results":
                             "Predicted ROI": "{:,.1f}:1".format(_roi),
                         }])
                         st.dataframe(_row, hide_index=True, width="stretch")
-                        st.caption("Shown for the selected programme only. Choose another programme above to see "
-                                   "its prediction; recovery is measured from each programme's own start date.")
+                        st.caption("Select another project above to see its prediction.")
+                        if _elig_note:
+                            st.caption(_elig_note)
+                        _src = "World Bank WDI" if str(_wb_src).startswith("World Bank") else "built-in World Bank estimate"
+                        _steps = (
+                            '<div style="font-size:.85rem;color:#c9d1d9;line-height:1.7;margin:.9rem 0 .3rem 0;">'
+                            '<b>How this figure is calculated</b>'
+                            '<ol style="margin:.3rem 0 0 1.1rem;padding:0;">'
+                            "<li><b>Recovery.</b> Nightlights in the {:,} affected areas regained {:.0f}% of their loss "
+                            "since this project started.</li>"
+                            "<li><b>Economy at stake.</b> These areas account for about {} of GDP "
+                            "({:.0%} of admin units; national GDP {}, {}).</li>"
+                            "<li><b>Economic reactivation.</b> With the standard elasticity of 0.3 (Henderson et al., 2012), "
+                            "{:.0f}% more light corresponds to {:.1f}% more GDP, about {} across all actors.</li>"
+                            "<li><b>This project's share.</b> It is {:.0%} of UNDP's post-event budget ({} of {}), "
+                            "so it is credited with {}, a {:,.1f}:1 return on its budget.</li>"
+                            "</ol></div>"
+                        ).format(_n_aff, _rec, _fmt_big(_aff_gdp), _cov, _fmt_big(_nat_gdp), _wb_year,
+                                 _rec, _gdp_eff, _fmt_big(_react),
+                                 _bshare, _fmt_big(_sel_b), _fmt_big(_tot_b), _fmt_big(_prog_react), _roi)
+                        st.markdown(_steps, unsafe_allow_html=True)
+                        st.caption("GDP: " + _src + " (" + str(_wb_year) + "). Affected-area GDP is split evenly "
+                                   "across admin units; the elasticity is a global average and may differ locally.")
 
-            except Exception:
-                pass
+            except Exception as _re_err:
+                st.caption("Predicted reactivation unavailable: " + str(_re_err)[:150])
 
             # DATA SOURCES & AVAILABILITY
-    if has_scorecard:
+    if resolve_dir("data", code).exists():
         import base64 as _b64
-        _logos_dir = Path("logos")
+        _logos_dir = REPO_ROOT / "logos"
         _row1 = [
             ("undp.png", "UNDP Projects", str(resolve_dir("data", code) / "external" / "undp_projects.csv")),
             ("nasa.png", "Nightlights (VIIRS)", str(resolve_dir("data", code) / f"gee_panel_{code}_centroid.csv")),
@@ -1535,9 +1639,7 @@ if mode == "📊 View Results":
                             ts = [f for f in figs if f.name.startswith('ts_')]
                             mp = [f for f in figs if f.name.startswith('map_')]
                             if ts and mp:
-                                c1, c2 = st.columns(2)
-                                with c1: safe_image(str(ts[0]), width='stretch')
-                                with c2: safe_image(str(mp[0]), width='stretch')
+                                two_up(str(ts[0]), str(mp[0]))
                             elif ts: safe_image(str(ts[0]), width='stretch')
                             elif mp: safe_image(str(mp[0]), width='stretch')
                             st.markdown("---")
@@ -1783,7 +1885,6 @@ elif mode == "⚙️ Setup & Run":
 
     def run_cmd(cmd, desc):
         import time as _t
-        print(cmd)
         # --- single-job queue: only one pipeline runs at a time across all users ---
         if _lock_active():
             try:
@@ -1825,10 +1926,10 @@ elif mode == "⚙️ Setup & Run":
                 else:
                     # surface the real reason, not just a generic label
                     tail = chr(10).join(log[-15:])
-                    full_log = "\n".join(log)
-                    if "Pipeline finished" in full_log or "✓ COMPLETE" in full_log:
+                    out = chr(10).join(log)
+                    if "Pipeline finished" in out or "✓ COMPLETE" in out:
                         import re as _re
-                        _m = _re.search(r"Issues:\s*(\d+)", full_log)
+                        _m = _re.search(r"Issues:\s*(\d+)", out)
                         _n = _m.group(1) if _m else "some"
                         st.warning(f"{desc} completed. {_n} non-critical stage issue(s) — "
                                    "results were produced; see the log above for details.")
@@ -1970,7 +2071,7 @@ The "Since Project" metric can never exceed "Targeted" recovery (logical consist
 
 ---
 
-### Predicted Economic Reactivation (illustrative)
+### Predicted Economic Reactivation (correlational)
 
 Converts nightlight recovery into a predicted USD figure in 4 steps:
 
@@ -1979,7 +2080,7 @@ Converts nightlight recovery into a predicted USD figure in 4 steps:
 3. **Affected-area GDP** as the national GDP times the share of affected admin units
 4. **Predicted reactivation** as affected GDP times recovery times the Henderson, Storeygard & Weil (2012) elasticity of 0.3, with each project assigned a share in proportion to its budget
 
-The elasticity means 10% nightlight recovery corresponds to roughly 3% GDP; it is a global average and local values differ. The predicted ROI divides each project's assigned share by its budget.
+The elasticity means 10% nightlight recovery corresponds to roughly 3% GDP; it is a global average and local values differ. The predicted ROI divides each project's assigned share by its budget. Every post-event project with a budget is included, because any project spending (staff, procurement, local purchases) can reach the local economy. Umbrella programmes flagged in the register are excluded to avoid double counting, and no prediction is shown when recovery since a project's start is below 10%, where the satellite signal is too weak to convert into dollars.
 
 **These are predictions, not measured returns.** They assume the recovery observed after a project started is attributable to it in proportion to its spending, which the dashboard does not test. Recovery reflects every actor on the ground; budgets are allocations, not disbursements; and GDP is distributed proportionally across admin units. Measured effects require the comparison designs described below.
 

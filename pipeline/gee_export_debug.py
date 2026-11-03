@@ -47,36 +47,22 @@ class GEEExporterDebug:
         boundary_path = Path(boundary_config.get('file_path', ''))
         self.id_col = boundary_config.get('id_column', 'adm3_pcode')
         self.name_col = boundary_config.get('name_column', 'adm3_name')
-
+        
+        # Initialize GEE
         print("Initializing GEE...")
         _gee_project = os.environ.get("GEE_PROJECT", "") or None
-        _sa_env = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "").strip()
-
-        _creds = None
-
-        # 1. If it looks like a JSON object, load from string
-        if _sa_env.startswith("{"):
-            _sa_email = json.loads(_sa_env).get("client_email")
-            _creds = ee.ServiceAccountCredentials(_sa_email, key_data=_sa_env)
-
-        # 2. Otherwise, treat it as a file path (with fallbacks)
-        else:
-            _sa_path = _sa_env
-            if not _sa_path:
-                for _cand in ["gee_service_account.json",
-                              os.path.join(os.path.expanduser("~"), ".undp_dashboard", "gee_service_account.json")]:
-                    if os.path.exists(_cand):
-                        _sa_path = _cand
-                        break
-
-            if _sa_path and os.path.exists(_sa_path):
-                with open(_sa_path) as _f:
-                    _sa_email = json.load(_f).get("client_email")
-                _creds = ee.ServiceAccountCredentials(_sa_email, _sa_path)
-
-        # 3. Authenticate and Initialize
+        _sa_json = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "")
+        if not _sa_json:
+            for _cand in ["gee_service_account.json",
+                          os.path.join(os.path.expanduser("~"), ".undp_dashboard", "gee_service_account.json")]:
+                if os.path.exists(_cand):
+                    _sa_json = _cand
+                    break
         try:
-            if _creds:
+            if _sa_json and os.path.exists(_sa_json):
+                with open(_sa_json) as _f:
+                    _sa_email = json.load(_f).get("client_email")
+                _creds = ee.ServiceAccountCredentials(_sa_email, _sa_json)
                 if _gee_project:
                     ee.Initialize(_creds, project=_gee_project)
                 else:
@@ -87,9 +73,9 @@ class GEEExporterDebug:
                     ee.Initialize(project=_gee_project)
                 else:
                     ee.Initialize()
-                print("✓ GEE Initialized (default credentials)")
+                print("✓ GEE Initialized")
         except Exception as _e:
-            print(f"GEE init failed ({_e}); trying interactive auth...")
+            print("GEE init failed (" + str(_e) + "); trying interactive auth...")
             ee.Authenticate()
             if _gee_project:
                 ee.Initialize(project=_gee_project)

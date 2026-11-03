@@ -1,0 +1,26 @@
+======================================================================
+ MYANMAR: WORLDPOP POPULATION OF TREATED TOWNSHIPS (Gaza-consistent)
+======================================================================
+  ✓ Boundaries: 330 townships (id: shapeID)
+  ✓ UNDP sites: 485
+  ✓ WorldPop raster: mmr_ppp_2020_UNadj_constrained.tif
+
+--- Extracting township populations (one-time, all townships) ---
+  ✓ Extracted for 330/330 townships (national sum in file extent: 53,976,055)
+   0.5km-1.5km:   1 treated townships, pop 202,107
+       1km-3km:   5 treated townships, pop 1,219,478
+       2km-5km:   8 treated townships, pop 1,853,253
+       3km-8km:  14 treated townships, pop 3,005,825
+      5km-15km:  23 treated townships, pop 4,671,438
+      8km-20km:  32 treated townships, pop 6,687,500
+
+  ✓ Saved outputs/mmr/results/population_worldpop.csv
+  ✓ Saved outputs/mmr/results/population_estimates.json
+
+======================================================================
+ HEADLINE (widest powered spec, 8km-20km, medium elasticity 0.3):
+   Satellite-verified treated population: 6,687,500
+   GDP gain: $718,072,988 - $1,197,538,650
+   BCR: 42.8:1 - 71.4:1
+   (Agency-reported 3.5M gave 21-39:1 — compare and report both.)
+======================================================================
