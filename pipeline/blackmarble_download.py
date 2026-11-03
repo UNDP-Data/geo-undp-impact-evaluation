@@ -27,6 +27,7 @@ import os
 import sys
 from pathlib import Path
 
+
 import pandas as pd
 import yaml
 
@@ -37,31 +38,57 @@ def load_config(path):
 
 
 def init_gee():
-    """Service-account auth, mirroring pipeline.gee_export_debug (known-good)."""
+    """Service-account auth supporting both file paths and raw JSON env vars."""
     import ee
-    _gee_project = os.environ.get("GEE_PROJECT", "") or None
-    _sa_json = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "")
+    _gee_project = os.environ.get("GEE_PROJECT", "").strip() or None
+    _sa_json = os.environ.get("GEE_SERVICE_ACCOUNT_JSON", "").strip()
+
     if not _sa_json:
-        for _cand in ["gee_service_account.json",
-                      os.path.join(os.path.expanduser("~"), ".undp_dashboard",
-                                   "gee_service_account.json"),
-                      "/opt/undp-dashboard/gee_service_account.json"]:
+        for _cand in [
+            "gee_service_account.json",
+            os.path.join(os.path.expanduser("~"), ".undp_dashboard", "gee_service_account.json"),
+            "/opt/undp-dashboard/gee_service_account.json",
+        ]:
             if os.path.exists(_cand):
                 _sa_json = _cand
                 break
-    if _sa_json and os.path.exists(_sa_json):
-        with open(_sa_json) as _f:
-            _sa_email = json.load(_f).get("client_email")
-        _creds = ee.ServiceAccountCredentials(_sa_email, _sa_json)
-        if _gee_project:
-            ee.Initialize(_creds, project=_gee_project)
+
+    try:
+        if _sa_json:
+            # Case 1: _sa_json is a path to a JSON file on disk
+            if os.path.exists(_sa_json):
+                with open(_sa_json) as _f:
+                    _sa_email = json.load(_f).get("client_email")
+                _creds = ee.ServiceAccountCredentials(_sa_email, key_file=_sa_json)
+            # Case 2: _sa_json is the raw JSON string from .env or Azure Container Apps
+            elif _sa_json.startswith("{"):
+                _sa_email = json.loads(_sa_json).get("client_email")
+                _creds = ee.ServiceAccountCredentials(_sa_email, key_data=_sa_json)
+            else:
+                raise FileNotFoundError(f"GEE service account file not found at: {_sa_json}")
+
+            if _gee_project:
+                ee.Initialize(_creds, project=_gee_project)
+            else:
+                ee.Initialize(_creds)
+            print("✓ GEE Initialized (service account)")
         else:
-            ee.Initialize(_creds)
-        print("✓ GEE Initialized (service account)")
-    else:
-        ee.Initialize()
-        print("✓ GEE Initialized (default credentials)")
+            if _gee_project:
+                ee.Initialize(project=_gee_project)
+            else:
+                ee.Initialize()
+            print("✓ GEE Initialized (default credentials)")
+    except Exception as _e:
+        print(f"GEE init failed ({_e}); trying interactive auth...")
+        ee.Authenticate(auth_mode="notebook")
+        if _gee_project:
+            ee.Initialize(project=_gee_project)
+        else:
+            ee.Initialize()
+        print("✓ GEE Authenticated")
+
     return ee
+
 
 
 BAND = "Gap_Filled_DNB_BRDF_Corrected_NTL"
