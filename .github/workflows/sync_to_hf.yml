@@ -6,6 +6,7 @@ on:
 
 jobs:
   sync:
+    if: github.repository == 'hgrueso/undp-impact-evaluation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
