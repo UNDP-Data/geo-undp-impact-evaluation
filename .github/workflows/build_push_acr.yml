@@ -20,6 +20,11 @@ jobs:
         with:
           string: ${{ github.repository }}
 
+      - name: Generate Ymd.N version tag
+        id: version
+        run: |
+          echo "tag=$(date -u +'%Y%m%d').${{ github.run_number }}" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -35,6 +40,8 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ secrets.ACR_ENDPOINT }}/${{ steps.repo-name.outputs.lowercase }}:latest
+          tags: |
+            ${{ secrets.ACR_ENDPOINT }}/${{ steps.repo-name.outputs.lowercase }}:latest
+            ${{ secrets.ACR_ENDPOINT }}/${{ steps.repo-name.outputs.lowercase }}:${{ steps.version.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
