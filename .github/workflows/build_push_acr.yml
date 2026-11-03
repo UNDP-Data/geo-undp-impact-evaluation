@@ -16,7 +16,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          lfs:true
+          lfs: true
 
       - name: Convert repository string to lowercase
         id: repo-name
