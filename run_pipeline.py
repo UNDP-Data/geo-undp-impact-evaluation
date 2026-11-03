@@ -50,6 +50,21 @@ def main():
 
     cfg = load_cfg(args.config)
     code = code_for(cfg, args.config)
+
+    # Monitoring data should run to the present: if the study window ends in the
+    # past, extend it to today and save, so every download reaches now.
+    try:
+        from datetime import date as _date
+        _end = str(cfg.get("study_period_end", ""))[:10]
+        _today = _date.today().isoformat()
+        if _end and _end < _today:
+            cfg["study_period_end"] = _today
+            import yaml as _yaml
+            with open(args.config, "w") as _fw:
+                _yaml.dump(cfg, _fw, default_flow_style=False, sort_keys=False)
+            print(f"  ↻ Study window extended to today ({_end} -> {_today})", flush=True)
+    except Exception as _e:
+        print(f"  ⚠ Could not extend the study window: {_e}", flush=True)
     data_dir = Path(f"data/{code}")
     ext = data_dir / "external"
     out_dir = Path(f"outputs/{code}")
@@ -58,6 +73,55 @@ def main():
 
     stage = args.stage.lower()
     rc_total = 0
+
+    def _latest_days(path, date_based=True):
+        """Days since the newest observation in the file (file age as fallback)."""
+        import time as _t
+        if date_based:
+            try:
+                import pandas as pd
+                df = pd.read_csv(path)
+                col = next((c for c in df.columns if c.lower() in
+                            ("period_start", "date", "event_date", "week", "month", "period")), None)
+                if col is None:
+                    col = next((c for c in df.columns if "date" in c.lower()), None)
+                if col is not None:
+                    last = pd.to_datetime(df[col], errors="coerce").max()
+                    if pd.notna(last):
+                        return (pd.Timestamp.now() - last).days
+            except Exception:
+                pass
+        return (_t.time() - path.stat().st_mtime) / 86400
+
+    def refresh(path, max_age, module, label, extra=None, optional=False, date_based=True):
+        """Download if the file is missing or stale; never lose the old file."""
+        import shutil
+        if path.exists():
+            age = _latest_days(path, date_based)
+            if age <= max_age:
+                print(f"  ✓ {label} up to date ({file_rows(path)} rows, latest {age:.0f} days ago) — skipping", flush=True)
+                return 0
+            print(f"  ↻ {label} data is {age:.0f} days old — refreshing", flush=True)
+        bak = path.with_name(path.name + ".bak")
+        before, prev_rows = (path.stat().st_mtime, file_rows(path)) if path.exists() else (None, 0)
+        if path.exists():
+            shutil.copy2(path, bak)
+        try:
+            rc = run_module(module, args.config, extra)
+        except Exception:
+            rc = 1
+        ok = (path.exists() and file_rows(path) > 0
+              and (before is None or path.stat().st_mtime != before)
+              and file_rows(path) >= 0.8 * prev_rows)
+        if not ok:
+            if bak.exists():
+                shutil.copy2(bak, path)
+                print(f"  ⚠ {label} refresh failed or came back incomplete — kept the previous data", flush=True)
+                return 0
+            print(f"  ⚠ {label} download failed", flush=True)
+            return 0 if optional else (rc or 1)
+        print(f"  ✓ {label} refreshed ({file_rows(path)} rows)", flush=True)
+        return 0
 
     def boundaries():
         try:
@@ -69,54 +133,73 @@ def main():
         return run_module("pipeline.download_boundaries", args.config)
 
     def gee():
-        f = data_dir / f"gee_panel_{code}_centroid.csv"
-        if f.exists():
-            print(f"  ✓ GEE data exists ({file_rows(f)} rows) — skipping", flush=True); return 0
-        return run_module("pipeline.gee_export_debug", args.config)
+        return refresh(data_dir / f"gee_panel_{code}_centroid.csv", 45,
+                       "pipeline.gee_export_debug", "Satellite")
 
     def bm():
-        f = ext / "blackmarble_ntl.csv"
-        if f.exists():
-            print(f"  ✓ Black Marble exists ({file_rows(f)} rows) — skipping", flush=True); return 0
-        try:
-            run_module("pipeline.blackmarble_download", args.config)
-        except Exception:
-            print("  ⚠ Black Marble failed — continuing without it", flush=True)
-        return 0   # experimental stage: never counts as an issue
+        return refresh(ext / "blackmarble_ntl.csv", 30, "pipeline.blackmarble_download",
+                       "Black Marble", optional=True)
 
     def acled():
-        f = ext / "acled_conflict.csv"
-        if f.exists():
-            print(f"  ✓ ACLED exists ({file_rows(f)} events) — skipping", flush=True); return 0
         email = os.environ.get("ACLED_EMAIL"); key = os.environ.get("ACLED_KEY") or os.environ.get("ACLED_PASSWORD")
-        if email and key:
-            return run_module("pipeline.acled_download", args.config, ["--email", email, "--password", key])
-        print("  ⚠ ACLED credentials not set (ACLED_EMAIL / ACLED_KEY) — skipping", flush=True); return 0
+        if not (email and key):
+            print("  ⚠ ACLED credentials not set (ACLED_EMAIL / ACLED_KEY) — skipping", flush=True); return 0
+        return refresh(ext / "acled_conflict.csv", 30, "pipeline.acled_download", "Conflict events (ACLED)",
+                       extra=["--email", email, "--password", key])
 
     def wfp():
-        f = ext / "wfp_prices.csv"
-        if f.exists():
-            print(f"  ✓ WFP prices exist ({file_rows(f)} rows) — skipping", flush=True); return 0
-        try:
-            run_module("pipeline.wfp_download", args.config)
-        except Exception:
-            print("  ⚠ WFP download failed — continuing without prices", flush=True)
-        return 0   # optional stage: never counts as an issue
+        return refresh(ext / "wfp_prices.csv", 60, "pipeline.wfp_download", "Food prices (WFP)", optional=True)
 
     def gt():
+        import shutil, time as _t
         f = ext / "google_trends.csv"
+        MAX_AGE_DAYS = 30
+
+        def _age_days(path):
+            # Age of the newest observation in the file; file age as a fallback.
+            try:
+                import pandas as pd
+                df = pd.read_csv(path)
+                col = next((c for c in df.columns
+                            if "date" in c.lower() or c.lower() in ("week", "month", "period", "period_start")), None)
+                if col is not None:
+                    last = pd.to_datetime(df[col], errors="coerce").max()
+                    if pd.notna(last):
+                        return (pd.Timestamp.now() - last).days
+            except Exception:
+                pass
+            return (_t.time() - path.stat().st_mtime) / 86400
+
         if f.exists():
-            print(f"  ✓ Google Trends exist ({file_rows(f)} records) — skipping", flush=True); return 0
+            age = _age_days(f)
+            if age <= MAX_AGE_DAYS:
+                print(f"  ✓ Google Trends up to date ({file_rows(f)} records, latest {age:.0f} days ago) — skipping", flush=True)
+                return 0
+            print(f"  ↻ Google Trends data is {age:.0f} days old — refreshing", flush=True)
+        bak = ext / "google_trends.csv.bak"
+        before = f.stat().st_mtime if f.exists() else None
+        if f.exists():
+            shutil.copy2(f, bak)
         try:
-            return run_module("pipeline.google_trends", args.config)
+            run_module("pipeline.google_trends", args.config)
         except Exception:
-            print("  ⚠ Google Trends failed — skipping", flush=True); return 0
+            pass
+        refreshed = f.exists() and file_rows(f) > 0 and (before is None or f.stat().st_mtime != before)
+        if not refreshed:
+            if bak.exists():
+                shutil.copy2(bak, f)
+                print("  ⚠ Google Trends refresh failed (Google often blocks automated requests from servers) "
+                      "— kept the previous data", flush=True)
+            else:
+                print("  ⚠ Google Trends download failed — no data for this country yet", flush=True)
+            return 0   # optional source: never counts as a pipeline issue
+        print(f"  ✓ Google Trends refreshed ({file_rows(f)} records)", flush=True)
+        if stage == "gt":
+            trends()   # the Trends button also redraws the charts
+        return 0
 
     def undp():
-        f = ext / "undp_projects.csv"
-        if f.exists() and file_rows(f) > 0:
-            print(f"  ✓ UNDP projects exist ({file_rows(f)}) — skipping", flush=True); return 0
-        return run_module("pipeline.undp_projects", args.config)
+        return refresh(ext / "undp_projects.csv", 90, "pipeline.undp_projects", "UNDP projects", date_based=False)
 
     def preprocess():
         return run_module("pipeline.orchestrator", args.config, ["--stage", "preprocess"])

@@ -1,5 +1,5 @@
 Outcome,Pre Mean,Post Mean,Change (%),N Pre,N Post
-Nighttime Lights (VIIRS Monthly),0.542,0.613,+13.2%,5174,9552
+Nighttime Lights,0.542,0.613,+13.2%,5174,9552
 Vegetation (NDVI),0.168,0.169,+0.3%,5174,10746
 SAR VV (Radar),-11.176,-11.087,+0.8%,5174,11144
 SAR VH (Radar),-19.875,-20.152,-1.4%,5174,11144
