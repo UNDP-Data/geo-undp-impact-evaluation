@@ -1,0 +1,23 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: undp-impact-dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      # app paths
+      - ./pipeline:/opt/undp-dashboard/pipeline
+      - ./run_pipeline.py:/opt/undp-dashboard/run_pipeline.py
+      - ./app.py:/opt/undp-dashboard/app.py
+      - ./config:/opt/undp-dashboard/config
+      - ./data:/opt/undp-dashboard/data
+      - ./outputs:/opt/undp-dashboard/outputs
+      - undp_workspaces:/home/undp/.undp_dashboard
+
+volumes:
+  undp_workspaces:
