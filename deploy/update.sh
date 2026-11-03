@@ -1,14 +1,17 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "=== 1. Loading Configuration ==="
-if [ ! -f ".env" ]; then
-    echo "ERROR: .env file not found."
-    exit 1
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+echo "$SCRIPT_DIR"
+if [ ! -f "${SCRIPT_DIR}/.env" ]; then
+  echo "Error: Missing ${SCRIPT_DIR}/.env file." >&2
+  exit 1
 fi
 
+# Load static variables from .env
 set -a
-source .env
+source "${SCRIPT_DIR}/.env"
 set +a
 
 REPO="undp-data/geo-undp-impact-evaluation"
@@ -18,8 +21,12 @@ LATEST_VERSION_TAG=$(az acr repository show-tags \
   --name "$ACR_NAME" \
   --repository "$REPO" \
   --orderby time_desc \
-  --query "[?@!='latest'] |" \
-  --output tsv)
+  --output tsv | grep -v '^latest$' | head -n 1 || true)
+
+if [ -z "$LATEST_VERSION_TAG" ]; then
+  echo "Warning: No Ymd.N tag found yet, falling back to 'latest'"
+  LATEST_VERSION_TAG="latest"
+fi
 
 IMAGE="${ACR_NAME}.azurecr.io/${REPO}:${LATEST_VERSION_TAG}"
 echo "Deploying versioned image: $IMAGE"
@@ -31,5 +38,5 @@ az containerapp update \
   --image "$IMAGE"
 
 echo "============================================================"
-echo "Successfully updated $APP_NAME to version $LATEST_VERSION_TAG!"
+echo "Successfully updated $APP_NAME to $IMAGE!"
 echo "============================================================"
