@@ -10,102 +10,144 @@ Usage:
     python -m pipeline.download_boundaries --config config/myanmar.yaml
 """
 
-import requests
-import zipfile
-import geopandas as gpd
-from pathlib import Path
-import yaml
 import argparse
 import io
 import warnings
+import zipfile
+from pathlib import Path
+
+import geopandas as gpd
+import requests
+import yaml
+
 warnings.filterwarnings('ignore')
 
 
 def load_config(config_path: str) -> dict:
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
-def download_geoboundaries(country_code: str, admin_level: int, output_dir: Path) -> Path:
+def resolve_target_file(
+    configured_path: str | None,
+    country_code: str,
+    requested_level: int,
+    target_level: int,
+    output_dir: Path,
+) -> Path:
+    """Resolve the output GeoJSON path for a given admin level."""
+    if configured_path:
+        cfg_path = Path(configured_path)
+        if target_level == requested_level:
+            return cfg_path
+        # If falling back to a lower admin level, update the level suffix in the filename
+        updated_name = cfg_path.name.replace(
+            f"admin{requested_level}", f"admin{target_level}"
+        )
+        if updated_name != cfg_path.name:
+            return cfg_path.parent / updated_name
+
+    return output_dir / f"{country_code.lower()}_admin{target_level}.geojson"
+
+
+def download_geoboundaries(
+    country_code: str,
+    admin_level: int,
+    output_dir: Path,
+    target_file: Path | None = None,
+) -> Path | None:
     """Download from geoBoundaries (open data)."""
-    
-    url = f"https://github.com/wmgeolab/geoBoundaries/raw/main/releaseData/gbOpen/{country_code.upper()}/ADM{admin_level}/geoBoundaries-{country_code.upper()}-ADM{admin_level}.geojson"
-    
+    url = (
+        f"https://github.com/wmgeolab/geoBoundaries/raw/main/releaseData/gbOpen/"
+        f"{country_code.upper()}/ADM{admin_level}/"
+        f"geoBoundaries-{country_code.upper()}-ADM{admin_level}.geojson"
+    )
+
     print(f"  Trying geoBoundaries: {url[:60]}...")
     response = requests.get(url, timeout=60)
-    
+
     if response.status_code == 200:
-        output_file = output_dir / f"{country_code.lower()}_admin{admin_level}.geojson"
+        output_file = target_file or (
+            output_dir / f"{country_code.lower()}_admin{admin_level}.geojson"
+        )
+        output_file.parent.mkdir(parents=True, exist_ok=True)
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(response.text)
         return output_file
-    
+
     return None
 
 
-def download_hdx(country_code: str, admin_level: int, output_dir: Path) -> Path:
+def download_hdx(
+    country_code: str,
+    admin_level: int,
+    output_dir: Path,
+    target_file: Path | None = None,
+) -> Path | None:
     """Download from HDX CKAN API."""
-    
     dataset_name = f"cod-ab-{country_code.lower()}"
     api_url = f"https://data.humdata.org/api/3/action/package_show?id={dataset_name}"
-    
+
     print(f"  Trying HDX: {dataset_name}...")
     response = requests.get(api_url, timeout=60)
-    
+
     if response.status_code != 200:
         return None
-    
+
     data = response.json()
     if not data.get('success'):
         return None
-    
+
     resources = data['result']['resources']
-    
+
     # Find geojson or shapefile for this admin level
     resource_url = None
     for r in resources:
         name = r.get('name', '').lower()
         fmt = r.get('format', '').lower()
-        
+
         if f'adm{admin_level}' in name:
             if 'geojson' in fmt or 'json' in fmt:
                 resource_url = r.get('url')
                 break
             elif 'shp' in fmt or 'zip' in fmt:
                 resource_url = r.get('url')
-    
+
     if not resource_url:
         return None
-    
+
     print(f"  Downloading: {resource_url[:60]}...")
     response = requests.get(resource_url, timeout=120)
-    
+
     if response.status_code != 200:
         return None
-    
+
+    output_file = target_file or (
+        output_dir / f"{country_code.lower()}_admin{admin_level}.geojson"
+    )
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
     # Handle different file types
     if resource_url.endswith('.geojson') or resource_url.endswith('.json'):
-        output_file = output_dir / f"{country_code.lower()}_admin{admin_level}.geojson"
         with open(output_file, 'wb') as f:
             f.write(response.content)
         return output_file
-    
+
     elif resource_url.endswith('.zip'):
         zip_data = io.BytesIO(response.content)
         with zipfile.ZipFile(zip_data, 'r') as z:
             z.extractall(output_dir)
-            
+
             # Find and convert shapefile
             shp_files = [f for f in z.namelist() if f.endswith('.shp')]
             adm_shp = [f for f in shp_files if f'adm{admin_level}' in f.lower()]
             shp_file = adm_shp[0] if adm_shp else (shp_files[0] if shp_files else None)
-            
+
             if shp_file:
                 gdf = gpd.read_file(output_dir / shp_file)
-                output_file = output_dir / f"{country_code.lower()}_admin{admin_level}.geojson"
                 gdf.to_file(output_file, driver='GeoJSON')
                 return output_file
-    
+
     return None
 
 
@@ -114,32 +156,44 @@ def main():
     parser.add_argument('--config', '-c', required=True)
     parser.add_argument('--admin-level', '-a', type=int, default=None)
     args = parser.parse_args()
-    
+
     config = load_config(args.config)
-    
+    boundaries_cfg = config.get('boundaries', {})
+
     country_name = config.get('country_name', 'Unknown')
     country_code = config.get('country_code', 'XXX').upper()
-    admin_level = args.admin_level or config['boundaries'].get('admin_level', 2)
-    
-    output_dir = Path(f"data/{country_code.lower()}/boundaries")
+    admin_level = args.admin_level or boundaries_cfg.get('admin_level', 2)
+    configured_file_path = boundaries_cfg.get('file_path')
+
+    if configured_file_path:
+        output_dir = Path(configured_file_path).parent
+    else:
+        output_dir = Path(f"data/{country_code.lower()}/boundaries")
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     print(f"\n{'='*70}")
     print(f"DOWNLOAD BOUNDARIES: {country_name}")
     print(f"{'='*70}")
     print(f"Country: {country_code}")
     print(f"Admin level: {admin_level}")
     print(f"Output: {output_dir}")
-    
-    # Try requested admin level; if it doesn't exist for this country
-    # (e.g. Venezuela/Colombia have no ADM3+ in geoBoundaries), fall back
-    # level by level and update the config so downstream stages match.
+
+    # Try requested admin level; if it doesn't exist for this country,
+    # fall back level by level and update the config so downstream stages match.
     output_file = None
     used_level = admin_level
     for lvl in range(admin_level, 0, -1):
-        output_file = download_geoboundaries(country_code, lvl, output_dir)
+        target_file = resolve_target_file(
+            configured_file_path, country_code, admin_level, lvl, output_dir
+        )
+        output_file = download_geoboundaries(
+            country_code, lvl, output_dir, target_file=target_file
+        )
         if output_file is None:
-            output_file = download_hdx(country_code, lvl, output_dir)
+            output_file = download_hdx(
+                country_code, lvl, output_dir, target_file=target_file
+            )
         if output_file is not None:
             used_level = lvl
             break
@@ -147,53 +201,63 @@ def main():
 
     if output_file is None:
         print(f"\n❌ Download failed at every admin level (ADM{admin_level}..ADM1)")
-        print(f"   Try manual download from:")
+        print("   Try manual download from:")
         print(f"   https://data.humdata.org/dataset/cod-ab-{country_code.lower()}")
         return 1
 
     # Also fetch ADM1 (states/provinces) so preprocessing can tag each unit
     # with its parent region for admin-level filtering in the dashboard.
     if used_level > 1:
-        adm1 = output_dir / f"{country_code.lower()}_admin1.geojson"
-        if not adm1.exists():
+        adm1_target = resolve_target_file(
+            configured_file_path, country_code, admin_level, 1, output_dir
+        )
+        if not adm1_target.exists():
             try:
-                download_geoboundaries(country_code, 1, output_dir)
+                download_geoboundaries(
+                    country_code, 1, output_dir, target_file=adm1_target
+                )
             except Exception as _e1:
                 print(f"  ⚠ ADM1 fetch skipped ({_e1})")
 
-    if used_level != admin_level:
-        print(f"\n  ⚠ Requested ADM{admin_level} does not exist for {country_code}.")
-        print(f"  ✓ Using ADM{used_level} instead — updating config to match.")
+    # Sync config if admin_level fell back or file_path differs from output_file
+    expected_path_str = str(output_file)
+    if used_level != admin_level or configured_file_path != expected_path_str:
+        if used_level != admin_level:
+            print(f"\n  ⚠ Requested ADM{admin_level} does not exist for {country_code}.")
+            print(f"  ✓ Using ADM{used_level} instead — updating config to match.")
         try:
-            with open(args.config) as _f:
+            with open(args.config, 'r', encoding='utf-8') as _f:
                 _cfg_full = yaml.safe_load(_f)
+            _cfg_full.setdefault('boundaries', {})
             _cfg_full['boundaries']['admin_level'] = used_level
-            _cfg_full['boundaries']['file_path'] = (
-                f"data/{country_code.lower()}/boundaries/"
-                f"{country_code.lower()}_admin{used_level}.geojson")
-            with open(args.config, 'w') as _f:
+            _cfg_full['boundaries']['file_path'] = expected_path_str
+            with open(args.config, 'w', encoding='utf-8') as _f:
                 yaml.dump(_cfg_full, _f, default_flow_style=False, sort_keys=False)
         except Exception as _e:
-            print(f"  ⚠ Could not update config automatically ({_e}) — "
-                  f"set admin_level: {used_level} manually.")
-    
+            print(
+                f"  ⚠ Could not update config automatically ({_e}) — "
+                f"set admin_level: {used_level} and file_path: {expected_path_str} manually."
+            )
+
     # Validate
     gdf = gpd.read_file(output_file)
     print(f"\n✓ Downloaded: {output_file.name}")
     print(f"  Units: {len(gdf)}")
     print(f"  Columns: {list(gdf.columns)[:8]}...")
-    
+
     # Check expected columns
-    id_col = config['boundaries'].get('id_column', 'ADM2_PCODE')
+    id_col = boundaries_cfg.get('id_column', 'ADM2_PCODE')
     if id_col not in gdf.columns:
-        pcode_cols = [c for c in gdf.columns if 'pcode' in c.lower() or 'code' in c.lower()]
+        pcode_cols = [
+            c for c in gdf.columns if 'pcode' in c.lower() or 'code' in c.lower()
+        ]
         print(f"\n⚠️ Expected '{id_col}' not found")
         print(f"   Available: {pcode_cols}")
         if pcode_cols:
             print(f"   → Update config: id_column: \"{pcode_cols[0]}\"")
-    
+
     print(f"\n{'='*70}")
-    print(f"✓ COMPLETE")
+    print("✓ COMPLETE")
     print(f"{'='*70}")
     return 0
 
