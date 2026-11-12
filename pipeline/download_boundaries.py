@@ -172,6 +172,7 @@ def main():
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
+
     print(f"\n{'='*70}")
     print(f"DOWNLOAD BOUNDARIES: {country_name}")
     print(f"{'='*70}")
